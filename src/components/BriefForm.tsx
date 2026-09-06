@@ -358,7 +358,6 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
         <p className="text-center t-footnote ink-3">
           {tr(lang, "gallery.priceNote").replace("{price}", priceLabel)}
         </p>
-        <p className="text-center t-footnote ink-3">{tr(lang, "form.retention")}</p>
       </div>
     </form>
   );
