@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getTemplate } from "@/lib/templates";
 import { LANGUAGES, SCRIPTS, ASPECTS } from "@/lib/templates/schema";
 import * as repo from "@/lib/repo";
+import { currentSession } from "@/lib/auth/session";
 
 const Body = z.object({
   templateId: z.string(),
@@ -19,7 +20,10 @@ export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
   const b = parsed.data;
-  if (!b.email && !b.phone) {
+  const session = await currentSession();
+
+  // A signed-in family needs no contact fields — we already have their email.
+  if (!session && !b.email && !b.phone) {
     return NextResponse.json({ error: "An email or a phone number is required for delivery" }, { status: 400 });
   }
 
@@ -29,7 +33,9 @@ export async function POST(req: Request) {
   const missing = template.fields.filter((f) => f.required && !b.fields[f.key]?.trim()).map((f) => f.key);
   if (missing.length) return NextResponse.json({ error: `Missing required fields: ${missing.join(", ")}` }, { status: 400 });
 
-  const user = await repo.findOrCreateUser(b.email, b.phone, b.partnerCode);
+  const user = session
+    ? { id: session.userId }
+    : await repo.findOrCreateUser(b.email, b.phone, b.partnerCode);
   const event = await repo.createEvent({
     userId: user.id as string,
     templateId: template.id,

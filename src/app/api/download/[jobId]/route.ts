@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { storage } from "@/lib/storage";
 import { isUnlocked } from "@/lib/payments";
 import * as repo from "@/lib/repo";
+import { currentSession } from "@/lib/auth/session";
+import { sql } from "@/lib/db";
 
 /**
  * The paywall. The unwatermarked master exists from the moment the render
@@ -15,6 +17,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ jobId: string }
   const job = await repo.getJob(jobId);
   if (!job) return NextResponse.json({ error: "No such job" }, { status: 404 });
   if (job.status !== "succeeded") return NextResponse.json({ error: "Render is not finished" }, { status: 409 });
+
+  // The master is the paid artefact. Holding the job id is not enough — a
+  // preview link gets forwarded around a family WhatsApp group by design.
+  const session = await currentSession();
+  if (!session) {
+    return NextResponse.json({ error: "Sign in to download", needsAuth: true }, { status: 401 });
+  }
+  const [owned] = await sql()`select 1 from events
+    where id = ${job.event_id} and user_id = ${session.userId} limit 1`;
+  if (!owned) return NextResponse.json({ error: "This trailer belongs to another account" }, { status: 403 });
   if (!(await isUnlocked(job.event_id))) {
     return NextResponse.json({ error: "Not unlocked", needsPayment: "unlock" }, { status: 402 });
   }

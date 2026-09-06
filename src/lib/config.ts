@@ -41,6 +41,9 @@ const Schema = z.object({
   SIGHTENGINE_USER: z.string().default(""),
   SIGHTENGINE_SECRET: z.string().default(""),
 
+  GOOGLE_CLIENT_ID: z.string().default(""),
+  GOOGLE_CLIENT_SECRET: z.string().default(""),
+
   RAZORPAY_KEY_ID: z.string().default(""),
   RAZORPAY_KEY_SECRET: z.string().default(""),
   RAZORPAY_WEBHOOK_SECRET: z.string().default(""),
