@@ -43,10 +43,13 @@ export async function authorizeEvent(eventId: string, req: Request): Promise<Eve
 
   const presented = req.headers.get(EVENT_TOKEN_HEADER) ?? "";
   const expected = String(event.access_token ?? "");
-  if (expected && presented.length === expected.length) {
-    const a = Buffer.from(presented);
-    const b = Buffer.from(expected);
-    if (crypto.timingSafeEqual(a, b)) {
+  // Compare BYTE lengths, not string lengths: a 48-character header of
+  // multi-byte codepoints is 96 bytes, and timingSafeEqual throws RangeError on
+  // a length mismatch — which surfaced as a 500 instead of a 403.
+  if (expected) {
+    const a = Buffer.from(presented, "utf8");
+    const b = Buffer.from(expected, "utf8");
+    if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
       return { ok: true, eventId, userId: event.user_id as string };
     }
   }

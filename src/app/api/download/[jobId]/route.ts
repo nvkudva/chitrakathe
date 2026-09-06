@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/http";
 import { storage } from "@/lib/storage";
 import { isUnlocked } from "@/lib/payments";
 import * as repo from "@/lib/repo";
@@ -10,7 +11,7 @@ import { sql } from "@/lib/db";
  * finishes — payment only unlocks the URL, so a purchase costs no model
  * seconds. See prd.md 5.
  */
-export async function GET(req: Request, ctx: { params: Promise<{ jobId: string }> }) {
+async function handleGET(req: Request, ctx: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await ctx.params;
   const aspect = new URL(req.url).searchParams.get("aspect") ?? "9:16";
 
@@ -43,3 +44,5 @@ export async function GET(req: Request, ctx: { params: Promise<{ jobId: string }
   );
   return NextResponse.redirect(url, 302);
 }
+
+export const GET = guard("api/download GET", handleGET);

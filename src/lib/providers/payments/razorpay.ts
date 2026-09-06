@@ -40,6 +40,7 @@ export async function createOrder(input: {
 
 /** Checkout handshake signature: HMAC(order_id|payment_id, key_secret). */
 export function verifyCheckoutSignature(orderId: string, paymentId: string, signature: string): boolean {
+  if (!config().RAZORPAY_KEY_SECRET) return false;
   const want = crypto
     .createHmac("sha256", config().RAZORPAY_KEY_SECRET)
     .update(`${orderId}|${paymentId}`)
@@ -47,12 +48,20 @@ export function verifyCheckoutSignature(orderId: string, paymentId: string, sign
   return safeEqual(want, signature);
 }
 
-/** Webhook signature: HMAC(raw body, webhook_secret). Verify on RAW bytes. */
+/**
+ * Webhook signature: HMAC(raw body, webhook_secret), verified on RAW bytes.
+ *
+ * Refuses outright when the secret is unset. HMAC with an empty key is a value
+ * anyone can compute, so an unconfigured deployment would have accepted forged
+ * "payment.captured" events and unlocked downloads for free.
+ */
 export function verifyWebhookSignature(rawBody: string, signature: string): boolean {
-  const want = crypto
-    .createHmac("sha256", config().RAZORPAY_WEBHOOK_SECRET)
-    .update(rawBody)
-    .digest("hex");
+  const secret = config().RAZORPAY_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error("[payments] RAZORPAY_WEBHOOK_SECRET is not set; refusing every webhook");
+    return false;
+  }
+  const want = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
   return safeEqual(want, signature);
 }
 

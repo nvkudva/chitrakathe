@@ -16,12 +16,24 @@ const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
 export type Session = { userId: string; email: string; name?: string; picture?: string; exp: number };
 
+const DEV_SECRET = "dev-only-signing-secret";
+
+/**
+ * The key behind every session cookie and every signed storage URL.
+ *
+ * The default is refused outside development, on http as well as https: the
+ * old guard only checked for https, so an http deployment shipped a publicly
+ * known key and anyone could mint a session for any user id.
+ */
 function secret(): string {
-  const s = config().SIGNING_SECRET;
-  if (config().APP_URL.startsWith("https://") && s === "dev-only-signing-secret") {
-    throw new Error("SIGNING_SECRET is still the development default on an https deployment");
+  const c = config();
+  if (c.SIGNING_SECRET === DEV_SECRET && c.NODE_ENV === "production") {
+    throw new Error(
+      "SIGNING_SECRET is still the development default. Set a random value — " +
+        "sessions and signed storage URLs are forgeable without it."
+    );
   }
-  return s;
+  return c.SIGNING_SECRET;
 }
 
 function sign(payload: string): string {

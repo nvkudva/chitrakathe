@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readJson } from "@/lib/http";
+import { readJson, guard } from "@/lib/http";
 import { z } from "zod";
 import { storage } from "@/lib/storage";
 import { moderationProvider } from "@/lib/moderation";
@@ -8,8 +8,13 @@ import { authorizeEvent } from "@/lib/auth/eventAccess";
 
 const Body = z.object({
   assets: z.array(
-    z.object({ position: z.number().int().min(0), key: z.string(), contentType: z.string(), bytes: z.number().int() })
-  ),
+    z.object({
+      position: z.number().int().min(0).max(9),
+      key: z.string().max(300),
+      contentType: z.enum(["image/jpeg", "image/png", "image/webp", "image/heic"]),
+      bytes: z.number().int().positive().max(12 * 1024 * 1024),
+    })
+  ).min(1).max(10),
 });
 
 /**
@@ -17,13 +22,23 @@ const Body = z.object({
  * moderation gate here, BEFORE a job can be queued. A rejected photo blocks
  * the whole event: partial acceptance would leave a hole in the storyboard.
  */
-export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function handlePOST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const access = await authorizeEvent(id, req);
   if (!access.ok) return access.response;
 
   const parsed = Body.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
+
+  // Every key must live under this event's own upload prefix. authorizeEvent
+  // proves who owns the EVENT; without this the body could name any file in
+  // the bucket, attaching another family's photos to your trailer and, on a
+  // moderation rejection, deleting theirs.
+  const prefix = `uploads/${id}/`;
+  const stray = parsed.data.assets.find((a) => !a.key.startsWith(prefix) || a.key.includes(".."));
+  if (stray) {
+    return NextResponse.json({ error: "That upload does not belong to this event" }, { status: 403 });
+  }
 
   const store = storage();
   const mod = moderationProvider();
@@ -56,3 +71,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   }
   return NextResponse.json({ ok: true, count: parsed.data.assets.length });
 }
+
+export const POST = guard("api/assets POST", handlePOST);

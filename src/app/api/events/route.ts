@@ -5,14 +5,25 @@ import { getTemplate } from "@/lib/templates";
 import { LANGUAGES, SCRIPTS, ASPECTS } from "@/lib/templates/schema";
 import * as repo from "@/lib/repo";
 import { currentSession } from "@/lib/auth/session";
+import { sql } from "@/lib/db";
 import { authorizeEvent } from "@/lib/auth/eventAccess";
 
 const Body = z.object({
   templateId: z.string(),
   language: z.enum(LANGUAGES),
   script: z.enum(SCRIPTS).optional(),
-  fields: z.record(z.string(), z.string()),
-  aspects: z.array(z.enum(ASPECTS)).min(1).default(["9:16", "1:1"]),
+  fields: z.record(z.string(), z.string().max(500)),
+  // Deduped and capped: the pipeline loops over this array, so 200 duplicates
+  // meant 200 encode passes for one event.
+  // Capped on input so a 200-element array cannot arrive at all, then deduped —
+  // the pipeline loops over this, so duplicates mean repeated encode passes.
+  // Dedupe must come after the cap, not before, or a legitimate repeat is a 400.
+  aspects: z
+    .array(z.enum(ASPECTS))
+    .min(1)
+    .max(8)
+    .default(["9:16", "1:1"])
+    .transform((a) => [...new Set(a)]),
   email: z.email().optional(),
   phone: z.string().min(10).max(15).optional(),
   partnerCode: z.string().optional(),
@@ -30,7 +41,16 @@ async function patchEvent(req: Request) {
   const event = await repo.getEvent(id);
   if (!event) return NextResponse.json({ error: "No such event" }, { status: 404 });
 
-  const parsed = z.object({ fields: z.record(z.string(), z.string()) }).safeParse(await readJson(req));
+  const busy = await sql()`select 1 from render_jobs
+    where event_id = ${id} and status in ('queued','running') limit 1`;
+  if (busy.length > 0) {
+    return NextResponse.json(
+      { error: "This trailer is being made right now. Wait for it to finish, then change it." },
+      { status: 409 }
+    );
+  }
+
+  const parsed = z.object({ fields: z.record(z.string(), z.string().max(500)) }).safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
 
   let template;
@@ -78,6 +98,13 @@ async function createEvent(req: Request) {
   const missing = template.fields.filter((f) => f.required && !b.fields[f.key]?.trim()).map((f) => f.key);
   if (missing.length) return NextResponse.json({ error: `Missing required fields: ${missing.join(", ")}` }, { status: 400 });
 
+  // Clip every value to what its own field declares, exactly as PATCH does.
+  const limits = new Map(template.fields.map((f) => [f.key, f.maxLength]));
+  const fields: Record<string, string> = {};
+  for (const [k, v] of Object.entries(b.fields)) {
+    if (limits.has(k)) fields[k] = v.slice(0, limits.get(k)!);
+  }
+
   const user = session
     ? { id: session.userId }
     : await repo.findOrCreateUser(b.email, b.phone, b.partnerCode);
@@ -87,7 +114,7 @@ async function createEvent(req: Request) {
     templateVersion: template.version,
     language: b.language,
     script: b.script,
-    fields: b.fields,
+    fields,
     aspects: b.aspects,
   });
 

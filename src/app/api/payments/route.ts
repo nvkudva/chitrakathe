@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readJson } from "@/lib/http";
+import { readJson, guard } from "@/lib/http";
 import { z } from "zod";
 import { startPayment } from "@/lib/payments";
 import { currentSession } from "@/lib/auth/session";
@@ -12,7 +12,7 @@ const Body = z.object({
 });
 
 /** Amount is always server-side. The client asks what for, never how much. */
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const parsed = Body.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
   const { eventId, jobId, purpose } = parsed.data;
@@ -31,3 +31,5 @@ export async function POST(req: Request) {
   if (result.alreadyPaid) return NextResponse.json({ alreadyPaid: true });
   return NextResponse.json(result.checkout);
 }
+
+export const POST = guard("api/payments POST", handlePOST);

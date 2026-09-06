@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/http";
 import { storage } from "@/lib/storage";
 import { isUnlocked } from "@/lib/payments";
 import * as repo from "@/lib/repo";
@@ -6,7 +7,7 @@ import { currentSession } from "@/lib/auth/session";
 import { sql } from "@/lib/db";
 
 /** Progress polling. Preview URLs are signed; masters are never exposed here. */
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function handleGET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const job = await repo.getJob(id);
   if (!job) return NextResponse.json({ error: "No such job" }, { status: 404 });
@@ -43,3 +44,5 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     ),
   });
 }
+
+export const GET = guard("api/jobs GET", handleGET);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readJson } from "@/lib/http";
+import { readJson, guard } from "@/lib/http";
 import { z } from "zod";
 import { storage, keys } from "@/lib/storage";
 import { checkUploadShape } from "@/lib/moderation";
@@ -22,7 +22,7 @@ const EXT: Record<string, string> = {
 };
 
 /** Hands back presigned PUTs. The browser uploads straight to object storage. */
-export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function handlePOST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   // Holding the event id is not authorisation: ids travel in URLs and the
   // upload keys derived from them are deterministic.
@@ -56,3 +56,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   }
   return NextResponse.json({ uploads: out });
 }
+
+export const POST = guard("api/uploads POST", handlePOST);
