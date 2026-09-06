@@ -10,7 +10,7 @@ Things that are deliberately unfinished, with what closing them requires. Nothin
 | **Konkani strings need native review** | Authored by hand in Devanagari and unverified. | A native Konkani speaker reads all four templates' `strings.kok` blocks. Coastal Karnataka Konkani, not Goan Konkani. |
 | **Konkani voiceover uses a Marathi voice** | Sarvam has no Konkani voice; `SarvamTts` maps `kok → mr-IN`, which is the closest Devanagari reader. | Listen to it with Konkani speakers. If it grates, drop Konkani voiceover to text-only for v1 and say so on the template card. |
 | **Kannada-script Konkani variant** | The schema supports it (`defaultScript`), no template sets it. | Decide with real families whether coastal Konkani speakers want Kannada script. Then one JSON field per template. |
-| **Delivery is logged, not sent** | `src/lib/delivery.ts` prints the link. | A transactional email provider, and an approved WhatsApp Cloud API template. |
+| **Delivery is logged, not sent** | `src/lib/delivery.ts` prints the link, at both moments (queued and ready). The *when* is now right; the *how* is still a stub. | A transactional email provider, and an approved WhatsApp Cloud API template. Until then, a family that closes the tab still relies on `/mine`. |
 | **No real families yet** | Milestone 7 is untouched. | Five real events, rendered and paid for, feedback written into `docs/feedback/`. |
 
 ## Does not block launch

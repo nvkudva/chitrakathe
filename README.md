@@ -39,7 +39,8 @@ Three structural decisions protect that margin:
 
 1. **The master is rendered once.** Payment unlocks an already-rendered file — it never triggers a second render. Model spend is once per job, not once per download.
 2. **Only 1–2 shots per trailer are generated.** The other 7–9 are the family's own photos under scripted camera motion, composited server-side with ffmpeg. Model seconds go where they show.
-3. **A hard ceiling of ₹95 per job, enforced in code.** Every priced operation is quoted against the ledger *before* it runs. A shot that cannot be afforded degrades to its authored photo fallback; a job that cannot be rendered inside the ceiling is refused, and the family is not charged. `CostLedger` is the only thing in the codebase allowed to spend money.
+3. **Each generative shot is produced once per job**, at 9:16, and every export is a crop of it. This is what `genCache` in `pipeline.ts` is for, and `scripts/check-cost-once.ts` is what stops it regressing: when generation sat inside the per-aspect loop, a two-shot template exported at two aspects paid four times and silently shipped a degraded square.
+4. **A hard ceiling of ₹95 per job, enforced in code.** Every priced operation is quoted against the ledger *before* it runs. A shot that cannot be afforded degrades to its authored photo fallback; a job that cannot be rendered inside the ceiling is refused, and the family is not charged. `CostLedger` is the only thing in the codebase allowed to spend money.
 
    Compute and storage are only knowable once a render finishes, so they are **reserved up front**. That reservation counts against every shot's affordability check, and the real charge settles against it at the end without ever throwing. A job that cannot afford even its own overhead is refused at the first line of the pipeline, having spent nothing — which is the only useful moment to refuse.
 
@@ -78,7 +79,30 @@ npm run costs      # cost and margin report
 npm run retention  # daily: purge photos past 30 days, outputs past 90
 ```
 
-Visit `/` to pick a template, `/admin/costs?token=$ADMIN_TOKEN` for the dashboard.
+Visit `/` to pick a template, `/mine` for a family's trailers, and
+`/admin/costs?token=$ADMIN_TOKEN` for the dashboard.
+
+### Checks
+
+```bash
+npm run typecheck
+npm test                                # 25 tests: budget, ceiling, no-likeness, session cookie, Indic dates
+npx tsx scripts/check-languages.ts      # 4 templates x 4 languages -> two contact sheets
+npx tsx scripts/check-cost-once.ts      # the model is called once per shot, not once per aspect
+```
+
+The last one guards the most expensive bug this codebase has had — see
+**Unit economics** below — and needs ffmpeg and Chromium, so it is not in
+`npm test`.
+
+### Sign-in
+
+Google, and only at the render. A family browses templates, fills the brief,
+uploads photos and watches the watermarked preview with no account; signing in
+is required to *start* a render, to pay, and to download. The render is the only
+irreversible spend in the funnel, so it is the only place a gate earns its keep.
+Watching a trailer at `/t/<jobId>` stays public — the growth loop is a WhatsApp
+forward. See [docs/auth.md](./docs/auth.md).
 
 ### Configuration that matters
 
@@ -105,6 +129,7 @@ Next.js (App Router)  ──▶  Postgres  ◀──  render worker (own process
 
 - **Nothing renders in a request.** The web tier writes a row and a queue message.
 - **Queue is pg-boss on the same Postgres.** No Redis. Job state is transactional with domain state.
+- **The form asks for the photo each shot needs**, not for a pile of photos. The storyboard consumes photos by index with fixed semantic roles, so `photoSlots` names each one ("a close photo of the baby's face", "a wide, uncluttered photo — the date goes over this one") and the template validator rejects a template that references a photo it has not labelled.
 - **Templates are JSON, validated by Zod at boot.** A malformed or over-budget template fails the process at startup, not at render time with a family waiting. The shot vocabulary is closed: new templates need no code, new *capability* does.
 - **Title cards are rendered in headless Chromium**, one frame at a time with animations driven through the Web Animations API, then composited by ffmpeg. Not for polish — `drawtext` renders Kannada and Devanagari conjuncts broken or as tofu. It also buys the full CSS animation vocabulary the storyboards call for. Only the animating window of a card is captured; the still tail is cloned.
 
