@@ -13,3 +13,6 @@ storage/
 fixtures/photos/
 assets/music/*.m4a
 var/
+
+# transient QA scratch scripts
+qa-*.ts
