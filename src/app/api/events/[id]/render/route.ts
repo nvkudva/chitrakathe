@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { enqueueRender } from "@/lib/queue";
+import { deliver } from "@/lib/delivery";
 import { getTemplate } from "@/lib/templates";
 import { isUnlocked } from "@/lib/payments";
 import { sql } from "@/lib/db";
@@ -76,6 +77,10 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
 
   const job = await repo.createJob(id, decision.isRerender);
   await enqueueRender({ jobId: job.id, eventId: id });
+
+  // Send the link now, not when the render finishes. A family that closes the
+  // tab during the 4-8 minute wait must still be able to find their trailer.
+  await deliver(id, job.id, "queued");
 
   return NextResponse.json({ jobId: job.id, isRerender: decision.isRerender, unlocked: await isUnlocked(id) });
 }

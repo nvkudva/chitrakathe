@@ -72,6 +72,11 @@ export async function getEvent(id: string): Promise<EventRow | null> {
   return (e as unknown as EventRow) ?? null;
 }
 
+export async function updateEventFields(eventId: string, fields: Record<string, string>) {
+  const db = sql();
+  await db`update events set fields = ${db.json(fields)}, updated_at = now() where id = ${eventId}`;
+}
+
 export async function addAsset(input: {
   eventId: string;
   position: number;

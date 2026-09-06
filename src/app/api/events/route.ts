@@ -16,6 +16,41 @@ const Body = z.object({
   partnerCode: z.string().optional(),
 });
 
+/** Edit the brief. Only the fields — photos and template are fixed once queued. */
+export async function PATCH(req: Request) {
+  const url = new URL(req.url);
+  const id = url.searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Missing event id" }, { status: 400 });
+
+  const session = await currentSession();
+  if (!session) return NextResponse.json({ error: "Sign in to edit", needsAuth: true }, { status: 401 });
+
+  const event = await repo.getEvent(id);
+  if (!event) return NextResponse.json({ error: "No such event" }, { status: 404 });
+  if (event.user_id !== session.userId) {
+    return NextResponse.json({ error: "This event belongs to another account" }, { status: 403 });
+  }
+
+  const parsed = z.object({ fields: z.record(z.string(), z.string()) }).safeParse(await req.json());
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
+
+  const template = getTemplate(event.template_id, event.template_version);
+  const allowed = new Set(template.fields.map((f) => f.key));
+  const fields: Record<string, string> = { ...event.fields };
+  for (const [k, v] of Object.entries(parsed.data.fields)) {
+    // Silently ignore keys this template does not declare, rather than letting
+    // arbitrary JSON accumulate on the row.
+    if (allowed.has(k)) fields[k] = v.slice(0, template.fields.find((f) => f.key === k)!.maxLength);
+  }
+  const missing = template.fields.filter((f) => f.required && !fields[f.key]?.trim()).map((f) => f.key);
+  if (missing.length) {
+    return NextResponse.json({ error: `Missing required fields: ${missing.join(", ")}` }, { status: 400 });
+  }
+
+  await repo.updateEventFields(id, fields);
+  return NextResponse.json({ ok: true, fields });
+}
+
 export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues }, { status: 400 });

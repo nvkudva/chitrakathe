@@ -71,7 +71,7 @@ async function handleRender(payload: RenderPayload) {
     console.log(
       `[worker] job ${jobId} done in ${result.durationSeconds}s of video, cost ${ledger.spentPaise}p of ${ledger.ceilingPaise}p`
     );
-    await deliver(eventId, jobId);
+    await deliver(eventId, jobId, "ready");
   } catch (err) {
     if (err instanceof CostCeilingExceeded) {
       // Refuse rather than overrun. The family is not charged and the job is
