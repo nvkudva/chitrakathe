@@ -31,3 +31,16 @@ Things that are deliberately unfinished, with what closing them requires. Nothin
 | **Date field shows `mm/dd/yyyy` for some users** | `<input type="date">` renders in the browser's UI language, which the page cannot override — `lang="en-IN"` does not reach it. On mobile, where nearly all of this traffic will be, the native picker follows the phone's locale and is correct. Revisit only if desktop users report it. |
 | **The footer stays English** | It lives in the root layout, which does not receive `searchParams`, so it cannot see `?lang`. Needs the language moved into the path (`/kn/...`) or a cookie. Not worth either until the language switch earns its keep. |
 | **No sample video on the gallery cards** | Still the highest-leverage conversion change available. The cards currently show a palette gradient. |
+
+## Merchant identity is a placeholder
+
+`src/lib/legal.ts` carries `[REGISTERED BUSINESS NAME]`, `[+91 XXXXX XXXXX]` and the rest as
+literal blanks, and `/terms`, `/refunds` and `/contact` render them verbatim. They are
+deliberately not filled with plausible-looking values — an invented address on a refund policy
+is worse than an obvious blank.
+
+This blocks launch twice over: Razorpay will not activate a live merchant account without a
+published legal name, address, phone, email, terms, refunds and privacy policy; and a family
+being asked for ₹499 by a website with no name behind it will not pay. Replace every field in
+`MERCHANT` before going live. `isPlaceholder()` is exported so a launch check can assert none
+of them still start with `[`.

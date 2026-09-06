@@ -65,10 +65,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             className="mx-auto w-full max-w-5xl px-5 py-10 t-footnote ink-4"
             style={{ paddingBottom: "calc(2.5rem + env(safe-area-inset-bottom))" }}
           >
-            Uploaded photos are deleted 30 days after upload. Rendered videos are kept 90 days.{" "}
-            <a href="/privacy" className="underline focus-ring rounded">
-              Privacy
-            </a>
+            <p className="mb-3">
+              Uploaded photos are deleted 30 days after upload. Rendered videos are kept 90 days.
+            </p>
+            <nav className="flex flex-wrap gap-x-4 gap-y-1">
+              {[
+                ["/privacy", "Privacy"],
+                ["/terms", "Terms"],
+                ["/refunds", "Refunds"],
+                ["/contact", "Contact"],
+              ].map(([href, label]) => (
+                <a key={href} href={href} className="underline focus-ring rounded">
+                  {label}
+                </a>
+              ))}
+            </nav>
           </footer>
         </div>
       </body>
