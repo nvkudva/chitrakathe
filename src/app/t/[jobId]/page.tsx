@@ -5,6 +5,7 @@ import { isLanguage } from "@/lib/i18n/ui";
 import { storage } from "@/lib/storage";
 import { getTemplate } from "@/lib/templates";
 import { sql } from "@/lib/db";
+import { isUuid } from "@/lib/auth/eventAccess";
 import JobView from "@/components/JobView";
 
 /**
@@ -14,6 +15,7 @@ import JobView from "@/components/JobView";
  */
 export async function generateMetadata({ params }: { params: Promise<{ jobId: string }> }): Promise<Metadata> {
   const { jobId } = await params;
+  if (!isUuid(jobId)) return { title: "Chitrakathe" };
   try {
     const [row] = await sql()`
       select e.template_id, e.language, e.fields, o.poster_key

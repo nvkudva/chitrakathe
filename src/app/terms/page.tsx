@@ -6,7 +6,7 @@ export default function Terms() {
   const price = rupees(config().PRICE_LAUNCH_PAISE);
   const rerender = rupees(config().PRICE_RERENDER_PAISE);
   return (
-    <article className="glass tier-2 max-w-2xl space-y-5 p-6 rise">
+    <article className="glass glass-rel tier-2 max-w-2xl space-y-5 p-6 rise">
       <h1 className="t-title-1 ink-1">Terms of service</h1>
       <p className="t-body ink-2">
         These terms cover {MERCHANT.tradingName}, operated by {MERCHANT.legalName}, {MERCHANT.address}.

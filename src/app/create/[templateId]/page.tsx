@@ -35,7 +35,7 @@ export default async function CreatePage({
       <header className="space-y-2">
         <h1 className="t-title-1 ink-1">{template.name[lang]}</h1>
         <p className="t-body ink-2 max-w-[44ch]">{template.blurb[lang]}</p>
-        <p className="t-caption ink-4">
+        <p className="t-callout ink-3">
           {totalDuration(template)}s ·{" "}
           {t(lang, "form.photoCount").replace("{n}", String(template.photoSlots.length))}
         </p>

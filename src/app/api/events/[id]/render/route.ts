@@ -5,6 +5,7 @@ import { getTemplate } from "@/lib/templates";
 import { isUnlocked } from "@/lib/payments";
 import { sql } from "@/lib/db";
 import * as repo from "@/lib/repo";
+import { authorizeEvent } from "@/lib/auth/eventAccess";
 import { currentSession } from "@/lib/auth/session";
 import { isConfigured } from "@/lib/auth/google";
 
@@ -12,8 +13,12 @@ import { isConfigured } from "@/lib/auth/google";
  * Enqueues a render. This route never renders — it writes a row and a queue
  * message and returns. See prd.md 8.
  */
-export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
+  // Holding the event id is not authorisation: ids travel in URLs and the
+  // upload keys derived from them are deterministic.
+  const access = await authorizeEvent(id, req);
+  if (!access.ok) return access.response;
   const event = await repo.getEvent(id);
   if (!event) return NextResponse.json({ error: "No such event" }, { status: 404 });
 
@@ -41,7 +46,12 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       where id = ${id} and (user_id = ${event.user_id} and claimed_at is null)`;
   }
 
-  const template = getTemplate(event.template_id, event.template_version);
+  let template;
+  try {
+    template = getTemplate(event.template_id, event.template_version);
+  } catch {
+    return NextResponse.json({ error: "This event's template is no longer available" }, { status: 409 });
+  }
   const photos = await repo.assetKeys(id);
   if (photos.length < template.photosRequired.min) {
     return NextResponse.json(

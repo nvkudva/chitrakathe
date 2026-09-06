@@ -1,5 +1,6 @@
 import { costSummary, jobCosts } from "@/lib/cost/report";
 import { rupees } from "@/lib/money";
+import { notFound } from "next/navigation";
 import { config } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +13,8 @@ export const dynamic = "force-dynamic";
 export default async function CostDashboard({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;
   const expected = config().ADMIN_TOKEN;
-  if (!expected || token !== expected) {
-    return <p className="t-body ink-3">Not available.</p>;
-  }
+  // 404, not a rendered "not available": a 200 confirms the route exists.
+  if (!expected || token !== expected) notFound();
 
   const [s, jobs] = await Promise.all([costSummary(30), jobCosts(50)]);
 
@@ -23,13 +23,13 @@ export default async function CostDashboard({ searchParams }: { searchParams: Pr
       <h1 className="t-title-1 ink-1">Cost and margin — last {s.windowDays} days</h1>
 
       {s.pricesStale && (
-        <p className="glass tier-2 px-4 py-3 t-callout" style={{ color: "#ffd98a" }}>
+        <p className="glass glass-rel tier-2 px-4 py-3 t-callout" style={{ color: "#ffd98a" }}>
           Price table last checked {s.pricesCheckedOn}. Re-verify provider pricing and update
           <code className="mx-1">src/lib/cost/prices.ts</code>.
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
         <Stat label="Renders" value={String(s.jobs)} sub={`${s.paidJobs} paid`} />
         <Stat label="Preview → paid" value={`${s.conversionPct.toFixed(1)}%`} sub="the number that decides everything" />
         <Stat label="Ceiling refusals" value={String(s.breaches)} sub="jobs stopped rather than overrun" />
@@ -47,7 +47,7 @@ export default async function CostDashboard({ searchParams }: { searchParams: Pr
         <h2 className="mb-3 t-overline ink-3">Spend by kind</h2>
         <div className="flex flex-wrap gap-4 text-sm">
           {Object.entries(s.byKind).map(([k, v]) => (
-            <span key={k} className="glass tier-0 px-3 py-1.5 t-subhead ink-2">
+            <span key={k} className="glass glass-rel tier-0 px-3 py-1.5 t-subhead ink-2">
               {k} <strong className="ml-1">{rupees(v)}</strong>
             </span>
           ))}
@@ -91,10 +91,10 @@ export default async function CostDashboard({ searchParams }: { searchParams: Pr
 
 function Stat({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
   return (
-    <div className="glass tier-2 p-4" style={highlight ? { boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--color-accent) 45%, transparent)" } : undefined}>
+    <div className="glass glass-rel tier-2 p-4" style={highlight ? { boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--color-accent) 45%, transparent)" } : undefined}>
       <p className="t-overline ink-3">{label}</p>
       <p className="mt-1 t-title-2 ink-1">{value}</p>
-      {sub && <p className="mt-1 t-caption ink-4">{sub}</p>}
+      {sub && <p className="mt-1 t-footnote ink-3">{sub}</p>}
     </div>
   );
 }

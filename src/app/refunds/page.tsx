@@ -5,7 +5,7 @@ import { rupees } from "@/lib/money";
 export default function Refunds() {
   const price = rupees(config().PRICE_LAUNCH_PAISE);
   return (
-    <article className="glass tier-2 max-w-2xl space-y-5 p-6 rise">
+    <article className="glass glass-rel tier-2 max-w-2xl space-y-5 p-6 rise">
       <h1 className="t-title-1 ink-1">Refunds and cancellations</h1>
       <p className="t-body ink-2">
         You watch the whole video, watermarked, before you pay anything. That is deliberate — it means you should

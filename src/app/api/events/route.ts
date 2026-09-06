@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { readJson, guard } from "@/lib/http";
 import { z } from "zod";
 import { getTemplate } from "@/lib/templates";
 import { LANGUAGES, SCRIPTS, ASPECTS } from "@/lib/templates/schema";
 import * as repo from "@/lib/repo";
 import { currentSession } from "@/lib/auth/session";
+import { authorizeEvent } from "@/lib/auth/eventAccess";
 
 const Body = z.object({
   templateId: z.string(),
@@ -17,24 +19,26 @@ const Body = z.object({
 });
 
 /** Edit the brief. Only the fields — photos and template are fixed once queued. */
-export async function PATCH(req: Request) {
+async function patchEvent(req: Request) {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing event id" }, { status: 400 });
 
-  const session = await currentSession();
-  if (!session) return NextResponse.json({ error: "Sign in to edit", needsAuth: true }, { status: 401 });
 
+  const access = await authorizeEvent(id, req);
+  if (!access.ok) return access.response;
   const event = await repo.getEvent(id);
   if (!event) return NextResponse.json({ error: "No such event" }, { status: 404 });
-  if (event.user_id !== session.userId) {
-    return NextResponse.json({ error: "This event belongs to another account" }, { status: 403 });
-  }
 
-  const parsed = z.object({ fields: z.record(z.string(), z.string()) }).safeParse(await req.json());
+  const parsed = z.object({ fields: z.record(z.string(), z.string()) }).safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
 
-  const template = getTemplate(event.template_id, event.template_version);
+  let template;
+  try {
+    template = getTemplate(event.template_id, event.template_version);
+  } catch {
+    return NextResponse.json({ error: "This event's template is no longer available" }, { status: 409 });
+  }
   const allowed = new Set(template.fields.map((f) => f.key));
   const fields: Record<string, string> = { ...event.fields };
   for (const [k, v] of Object.entries(parsed.data.fields)) {
@@ -51,8 +55,8 @@ export async function PATCH(req: Request) {
   return NextResponse.json({ ok: true, fields });
 }
 
-export async function POST(req: Request) {
-  const parsed = Body.safeParse(await req.json());
+async function createEvent(req: Request) {
+  const parsed = Body.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
   const b = parsed.data;
   const session = await currentSession();
@@ -62,7 +66,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "An email or a phone number is required for delivery" }, { status: 400 });
   }
 
-  const template = getTemplate(b.templateId);
+  // An unknown template is the caller's mistake, not ours: 400, not a throw.
+  let template;
+  try {
+    template = getTemplate(b.templateId);
+  } catch {
+    return NextResponse.json({ error: `Unknown template: ${b.templateId}` }, { status: 400 });
+  }
 
   // Required fields are checked against the template, not a duplicated list.
   const missing = template.fields.filter((f) => f.required && !b.fields[f.key]?.trim()).map((f) => f.key);
@@ -81,8 +91,14 @@ export async function POST(req: Request) {
     aspects: b.aspects,
   });
 
+  // The capability that lets an anonymous creator finish the flow. It is
+  // returned once, to the caller that made the event, and never listed.
   return NextResponse.json({
     eventId: event.id,
+    eventToken: event.access_token,
     photosRequired: template.photosRequired,
   });
 }
+
+export const POST = guard("api/events POST", createEvent);
+export const PATCH = guard("api/events PATCH", patchEvent);

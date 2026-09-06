@@ -33,7 +33,7 @@ export default function LanguageBar({ current, basePath }: { current: Language; 
   return (
     <div
       ref={track}
-      className="glass tier-0 relative inline-flex gap-1 p-1"
+      className="glass glass-rel seg-track tier-0 inline-flex gap-1 p-1"
       style={{ ["--r" as string]: "999px" }}
       role="group"
       aria-label="Language"

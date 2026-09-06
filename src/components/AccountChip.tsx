@@ -25,7 +25,7 @@ export default function AccountChip({
     return (
       <a
         href="/api/auth/signin"
-        className="glass tier-0 press focus-ring inline-flex items-center gap-2 rounded-full px-4 py-2 t-subhead ink-1"
+        className="glass glass-rel tier-0 press focus-ring inline-flex items-center gap-2 rounded-full px-4 py-2 t-subhead ink-1"
         style={{ ["--r" as string]: "999px", minHeight: 44 }}
       >
         <GoogleMark />
@@ -40,7 +40,7 @@ export default function AccountChip({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="glass tier-0 press focus-ring inline-flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3 t-subhead ink-1"
+        className="glass glass-rel tier-0 press focus-ring inline-flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3 t-subhead ink-1"
         style={{ ["--r" as string]: "999px", minHeight: 44 }}
       >
         {picture ? (
@@ -57,7 +57,7 @@ export default function AccountChip({
       {open && (
         <div
           role="menu"
-          className="glass tier-3 absolute right-0 mt-2 w-56 overflow-hidden p-2"
+          className="glass glass-rel tier-3 absolute right-0 mt-2 w-56 overflow-hidden p-2"
           style={{ ["--r" as string]: "18px" }}
         >
           <p className="px-3 py-2 t-footnote ink-3 break-all">{name}</p>

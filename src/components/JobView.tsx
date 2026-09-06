@@ -22,6 +22,7 @@ type Job = {
 
 export default function JobView({ jobId, lang, priceLabel }: { jobId: string; lang: Language; priceLabel: string }) {
   const [job, setJob] = useState<Job | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);
@@ -39,6 +40,11 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
     if (!alive.current) return;
     try {
       const res = await fetch(`/api/jobs/${jobId}`, { cache: "no-store" });
+      // 404 is an answer, not a failure: stop rather than backing off forever.
+      if (res.status === 404) {
+        if (alive.current) setNotFound(true);
+        return;
+      }
       if (!res.ok) throw new Error(String(res.status));
       const j = (await res.json()) as Job;
       failures.current = 0;
@@ -74,13 +80,22 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
     };
   }, [poll]);
 
+  if (notFound) {
+    return (
+      <div className="glass glass-rel tier-2 space-y-3 p-6">
+        <h1 className="t-title-2 ink-1">{tr(lang, "job.missing")}</h1>
+        <p className="t-body ink-2">{tr(lang, "job.missingBody")}</p>
+      </div>
+    );
+  }
+
   if (!job) {
-    return <div className="glass tier-2 h-40 animate-pulse p-6" aria-busy="true" />;
+    return <div className="glass glass-rel tier-2 h-40 animate-pulse p-6" aria-busy="true" />;
   }
 
   if (job.status === "refused_over_ceiling" || job.status === "failed") {
     return (
-      <div className="glass tier-3 space-y-3 p-6">
+      <div className="glass glass-rel tier-3 space-y-3 p-6">
         <h1 className="t-title-2 ink-1">{tr(lang, "job.failed")}</h1>
         <p className="t-body ink-2">{tr(lang, "job.failedBody")}</p>
       </div>
@@ -92,9 +107,9 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
   if (job.status !== "succeeded" && !job.watchable) {
     const pct = Math.max(4, job.progress);
     return (
-      <div className="glass tier-2 space-y-4 p-6">
+      <div className="glass glass-rel tier-2 space-y-4 p-6">
         <h1 className="t-title-2 ink-1">{tr(lang, "job.rendering")}</h1>
-        <div className="glass tier-0 h-2 overflow-hidden" style={{ ["--r" as string]: "999px" }}>
+        <div className="glass glass-rel tier-0 h-2 overflow-hidden" style={{ ["--r" as string]: "999px" }}>
           <div
             className="progress-fill h-full rounded-full"
             style={{
@@ -159,7 +174,7 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
         <h1 className="t-title-1 ink-1">{tr(lang, stillWorking ? "job.almost" : "job.done")}</h1>
 
         {portrait && (
-          <div className="glass tier-2 mx-auto w-full max-w-sm overflow-hidden p-2">
+          <div className="glass glass-rel tier-2 mx-auto w-full max-w-sm overflow-hidden p-2">
             <video
               src={portrait.previewUrl}
               poster={portrait.posterUrl ?? undefined}
@@ -172,16 +187,16 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
         )}
 
         {stillWorking && (
-          <p className="glass tier-0 t-footnote ink-2 p-3 text-center">{tr(lang, "job.squarePending")}</p>
+          <p className="glass glass-rel tier-0 t-footnote ink-2 p-3 text-center">{tr(lang, "job.squarePending")}</p>
         )}
 
         {!job.unlocked ? (
-          <div className="glass tier-3 mx-auto w-full max-w-sm space-y-4 p-5">
+          <div className="glass glass-rel tier-3 mx-auto w-full max-w-sm space-y-4 p-5">
             <p className="t-callout ink-2">{tr(lang, "preview.watermarked")}</p>
             <button onClick={pay} disabled={paying} className="btn btn-primary press focus-ring w-full">
               {paying ? "…" : tr(lang, "pay.cta").replace("{price}", priceLabel)}
             </button>
-            <p className="text-center t-footnote ink-4">{tr(lang, "pay.upi")}</p>
+            <p className="text-center t-footnote ink-3">{tr(lang, "pay.upi")}</p>
           </div>
         ) : (
           <div className="mx-auto flex w-full max-w-sm flex-col gap-2">
@@ -189,7 +204,7 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
               <a
                 key={o.aspect}
                 href={`/api/download/${job.id}?aspect=${encodeURIComponent(o.aspect)}`}
-                className="glass tier-2 press focus-ring block px-5 py-4 text-center t-callout ink-1"
+                className="glass glass-rel tier-2 press focus-ring block px-5 py-4 text-center t-callout ink-1"
               >
                 {tr(lang, o.aspect === "9:16" ? "download.portrait" : "download.square")}
               </a>
@@ -201,7 +216,7 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
           href={`https://wa.me/?text=${encodeURIComponent(shareUrl)}`}
           target="_blank"
           rel="noreferrer"
-          className="glass tier-2 press focus-ring mx-auto flex w-full max-w-sm items-center justify-center gap-2 px-5 py-4 t-callout ink-1"
+          className="glass glass-rel tier-2 press focus-ring mx-auto flex w-full max-w-sm items-center justify-center gap-2 px-5 py-4 t-callout ink-1"
         >
           {tr(lang, "share.whatsapp")}
         </a>

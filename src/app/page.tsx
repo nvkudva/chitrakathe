@@ -22,23 +22,30 @@ export default async function Gallery({ searchParams }: { searchParams: Promise<
         </p>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {templates.map((tpl) => (
           <Link
             key={tpl.id}
             href={`/create/${tpl.id}?lang=${lang}`}
-            className="glass tier-2 card-press focus-ring block overflow-hidden p-4"
+            className="glass glass-rel tier-2 card-press focus-ring block overflow-hidden p-3"
           >
             <div
-              className="mb-4 aspect-[4/3] w-full rounded-2xl"
+              className="relative mb-3 aspect-[16/10] w-full overflow-hidden"
               style={{
-                background: `radial-gradient(120% 90% at 30% 10%, ${tpl.palette.muted}, ${tpl.palette.bg} 70%)`,
+                borderRadius: 12,
+                background:
+                  `linear-gradient(180deg, transparent 52%, rgb(0 0 0 / 0.55) 100%),` +
+                  `radial-gradient(120% 90% at 30% 10%, ${tpl.palette.muted}, ${tpl.palette.bg} 70%)`,
                 boxShadow: "inset 0 1px 0 rgb(255 255 255 / 0.12), inset 0 0 0 1px rgb(255 255 255 / 0.06)",
               }}
-            />
-            <h2 className="t-title-3 ink-1">{tpl.name[lang]}</h2>
+            >
+              {/* The name sits in the poster: the poster was the largest, most
+                  saturated and most empty thing on the page, and the eye went
+                  to it instead of to the template. */}
+              <h2 className="absolute inset-x-0 bottom-0 p-3 t-title-3 ink-1">{tpl.name[lang]}</h2>
+            </div>
             <p className="mt-1.5 t-subhead ink-3">{tpl.blurb[lang]}</p>
-            <p className="mt-4 t-caption ink-4">
+            <p className="mt-4 t-callout ink-3">
               {totalDuration(tpl)}s · {tpl.region}
             </p>
           </Link>

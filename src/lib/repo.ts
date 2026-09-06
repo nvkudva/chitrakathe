@@ -2,6 +2,7 @@ import { sql } from "./db";
 import { config } from "./config";
 import type { CostEntry } from "./cost/ledger";
 import type { Brief, Language, Script } from "./templates/schema";
+import { newAccessToken, isUuid } from "./auth/eventAccess";
 
 export type JobRow = {
   id: string;
@@ -29,6 +30,7 @@ export type EventRow = {
   fields: Record<string, string>;
   aspects: string[];
   free_rerender_used: boolean;
+  access_token: string;
 };
 
 export async function findOrCreateUser(email?: string, phone?: string, partnerCode?: string) {
@@ -63,11 +65,15 @@ export async function createEvent(input: {
     script: input.script ?? null,
     fields: db.json(input.fields),
     aspects: input.aspects,
+    access_token: newAccessToken(),
   })} returning *`;
   return e as unknown as EventRow;
 }
 
 export async function getEvent(id: string): Promise<EventRow | null> {
+  // A non-uuid reaching a uuid column makes Postgres throw, which surfaced as
+  // an unauthenticated 500 on every /api/*/<garbage> route.
+  if (!isUuid(id)) return null;
   const [e] = await sql()`select * from events where id = ${id}`;
   return (e as unknown as EventRow) ?? null;
 }
@@ -136,6 +142,7 @@ export async function createJob(eventId: string, isRerender = false): Promise<Jo
 }
 
 export async function getJob(id: string): Promise<JobRow | null> {
+  if (!isUuid(id)) return null;
   const [j] = await sql()`select * from render_jobs where id = ${id}`;
   return (j as unknown as JobRow) ?? null;
 }
@@ -203,6 +210,7 @@ export async function addOutput(jobId: string, o: { aspect: string; masterKey: s
 }
 
 export async function outputsFor(jobId: string) {
+  if (!isUuid(jobId)) return [];
   return sql()`select * from render_outputs where job_id = ${jobId} order by aspect`;
 }
 

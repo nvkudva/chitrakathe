@@ -42,12 +42,21 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
       .catch(() => setSignedIn(false));
   }, []);
 
-  // Object URLs are revoked on replace and unmount; 8 leaked blobs of a 4 MB
-  // photo each is 32 MB held on a phone.
-  useEffect(() => () => slots.forEach((s) => s.url && URL.revokeObjectURL(s.url)), [slots]);
+  /*
+   * Revoke on unmount only.
+   *
+   * This used to depend on [slots], so the previous render's cleanup fired on
+   * every pick and revoked the object URLs of every photo already chosen —
+   * leaving one live thumbnail and seven broken images. Replacement is handled
+   * where it happens, in pick().
+   */
+  const live = useRef<string[]>([]);
+  live.current = slots.map((s) => s.url).filter((u): u is string => Boolean(u));
+  useEffect(() => () => live.current.forEach(URL.revokeObjectURL), []);
 
   const filled = slots.filter((s) => s.file).length;
-  const ready = filled >= template.photosRequired.min && Object.entries(fields).length > 0;
+  const missingRequired = template.fields.filter((f) => f.required && !fields[f.key]?.trim());
+  const ready = filled >= template.photoSlots.length && missingRequired.length === 0;
 
   async function pick(i: number, file: File | undefined) {
     if (!file) return;
@@ -87,8 +96,12 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
     e.preventDefault();
     setError(null);
 
-    if (filled < template.photosRequired.min) {
-      setError(`Please add all ${template.photosRequired.min} photos. You have ${filled}.`);
+    if (filled < template.photoSlots.length) {
+      setError(
+        tr(lang, "form.needPhotos")
+          .replace("{n}", String(template.photoSlots.length))
+          .replace("{have}", String(filled))
+      );
       return;
     }
     if (!signedIn && !contact.phone.trim() && !contact.email.trim()) {
@@ -97,7 +110,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
     }
 
     try {
-      setBusy("Creating your event");
+      setBusy(tr(lang, "busy.creating"));
       const ev = await post("/api/events", {
         templateId: template.id,
         language: lang,
@@ -107,30 +120,40 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
         phone: contact.phone || undefined,
       });
 
+      // The event's access token. Holding the event id is not authorisation:
+      // ids travel in URLs and the upload keys derived from them are
+      // deterministic, so every later call presents this.
+      const token: string = ev.eventToken;
       const files = slots.filter((s): s is Slot & { file: File } => Boolean(s.file)).map((s) => s.file);
-      setBusy("Getting upload links");
-      const { uploads } = await post(`/api/events/${ev.eventId}/uploads`, {
-        files: files.map((f) => ({ contentType: f.type, bytes: f.size })),
-      });
+      setBusy(tr(lang, "busy.links"));
+      const { uploads } = await post(
+        `/api/events/${ev.eventId}/uploads`,
+        { files: files.map((f) => ({ contentType: f.type, bytes: f.size })) },
+        token
+      );
 
       for (const [i, u] of uploads.entries()) {
-        setBusy(`Uploading photo ${i + 1} of ${uploads.length}`);
+        setBusy(tr(lang, "busy.uploading").replace("{i}", String(i + 1)).replace("{n}", String(uploads.length)));
         const res = await fetch(u.url, { method: "PUT", headers: u.headers, body: files[i]! });
         if (!res.ok) throw new Error(`Upload ${i + 1} failed`);
       }
 
-      setBusy("Checking your photos");
-      await post(`/api/events/${ev.eventId}/assets`, {
-        assets: uploads.map((u: { position: number; key: string }, i: number) => ({
-          position: u.position,
-          key: u.key,
-          contentType: files[i]!.type,
-          bytes: files[i]!.size,
-        })),
-      });
+      setBusy(tr(lang, "busy.checking"));
+      await post(
+        `/api/events/${ev.eventId}/assets`,
+        {
+          assets: uploads.map((u: { position: number; key: string }, i: number) => ({
+            position: u.position,
+            key: u.key,
+            contentType: files[i]!.type,
+            bytes: files[i]!.size,
+          })),
+        },
+        token
+      );
 
-      setBusy("Starting your trailer");
-      const job = await post(`/api/events/${ev.eventId}/render`, {});
+      setBusy(tr(lang, "busy.starting"));
+      const job = await post(`/api/events/${ev.eventId}/render`, {}, token);
       router.push(`/t/${job.jobId}`);
     } catch (err) {
       const e = err as Error & { needsAuth?: boolean; returnTo?: string };
@@ -158,7 +181,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
       {/* ---- video language ---- */}
       <section className="space-y-3">
         <h2 className="t-subhead ink-2">{tr(lang, "form.language")}</h2>
-        <div className="glass tier-0 inline-flex flex-wrap gap-1 p-1" style={{ ["--r" as string]: "999px" }}>
+        <div className="glass glass-rel seg-track tier-0 inline-flex gap-1 p-1" style={{ ["--r" as string]: "999px" }}>
           {(template.languages as Language[]).map((l) => (
             <button
               key={l}
@@ -166,8 +189,17 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
               onClick={() => setLang(l)}
               lang={l}
               aria-pressed={lang === l}
-              className={`focus-ring rounded-full px-4 t-subhead ${lang === l ? "glass tier-2 ink-1" : "ink-3"}`}
-              style={{ minHeight: 44, letterSpacing: 0, ["--r" as string]: "999px" }}
+              className={`focus-ring rounded-full px-4 t-subhead ${lang === l ? "ink-1" : "ink-3"}`}
+              style={{
+                minHeight: 44,
+                letterSpacing: 0,
+                ...(lang === l
+                  ? {
+                      background: "color-mix(in oklab, var(--color-scene-base) 100%, white 11%)",
+                      boxShadow: "inset 0 1px 0 rgb(255 255 255 / 0.20)",
+                    }
+                  : {}),
+              }}
             >
               {LANG_LABEL[l]}
             </button>
@@ -176,28 +208,28 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
       </section>
 
       {/* ---- brief fields ---- */}
-      <section className="glass tier-2 space-y-5 p-5">
+      <section className="glass glass-rel tier-2 space-y-5 p-5">
         {template.fields.map((f) => (
           <div key={f.key} className="space-y-2">
             <label htmlFor={f.key} className="block t-subhead ink-2">
               {tr(lang, f.labelKey)}
-              {!f.required && <span className="ink-4"> · optional</span>}
+              {!f.required && <span className="ink-3"> · {tr(lang, "field.optional")}</span>}
             </label>
-            <div className="glass tier-0">
+            <div className="glass glass-rel tier-0">
               {f.type === "textarea" ? (
                 <textarea
                   id={f.key}
-                  rows={2}
                   maxLength={f.maxLength}
                   required={f.required}
                   value={fields[f.key] ?? ""}
                   onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })}
-                  className="field resize-none"
+                  className="field" style={{ minHeight: 84, resize: "vertical", maxHeight: "40vh" }}
                 />
               ) : (
                 <input
                   id={f.key}
                   type={f.type === "date" ? "date" : "text"}
+                  lang={lang}
                   maxLength={f.maxLength}
                   required={f.required}
                   value={fields[f.key] ?? ""}
@@ -224,7 +256,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
           {template.photoSlots.map((role, i) => {
             const slot = slots[i]!;
             return (
-              <div key={i} className="glass tier-0 overflow-hidden p-3">
+              <div key={i} className="glass glass-rel tier-0 overflow-hidden p-3">
                 <input
                   ref={(el) => {
                     inputs.current[i] = el;
@@ -249,7 +281,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block t-callout ink-1">{label(role, i)}</span>
-                    <span className="block t-footnote" style={{ color: slot.error ? "#ffb3a7" : "var(--ink-4)" }}>
+                    <span className="block t-footnote" style={{ color: slot.error ? "#ffb3a7" : "var(--ink-3)" }}>
                       {slot.error ?? (slot.file ? tr(lang, "photo.replace") : tr(lang, "photo.add"))}
                     </span>
                   </span>
@@ -260,14 +292,14 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
         </div>
 
         {/* The strongest trust claim, where the parent is handing over the face. */}
-        <p className="glass tier-0 t-footnote ink-2 p-3">{tr(lang, "photo.noFaces")}</p>
+        <p className="glass glass-rel tier-0 t-footnote ink-2 p-3">{tr(lang, "photo.noFaces")}</p>
       </section>
 
       {/* ---- delivery ---- */}
       {signedIn === false && (
-        <section className="glass tier-2 space-y-3 p-5">
+        <section className="glass glass-rel tier-2 space-y-3 p-5">
           <h2 className="t-subhead ink-2">{tr(lang, "form.contactHeading")}</h2>
-          <div className="glass tier-0">
+          <div className="glass glass-rel tier-0">
             <input
               type="tel"
               inputMode="tel"
@@ -279,7 +311,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
             />
           </div>
           {showEmail ? (
-            <div className="glass tier-0">
+            <div className="glass glass-rel tier-0">
               <input
                 type="email"
                 autoComplete="email"
@@ -290,7 +322,8 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
               />
             </div>
           ) : (
-            <button type="button" onClick={() => setShowEmail(true)} className="t-footnote ink-3 underline focus-ring rounded">
+            <button type="button" onClick={() => setShowEmail(true)} className="t-footnote ink-2 underline focus-ring rounded inline-flex items-center"
+              style={{ minHeight: 44 }}>
               {tr(lang, "form.emailInstead")}
             </button>
           )}
@@ -298,7 +331,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
       )}
 
       {error && (
-        <p role="alert" className="glass tier-2 t-callout p-4" style={{ color: "#ffb3a7" }}>
+        <p role="alert" className="glass glass-rel tier-2 t-callout p-4" style={{ color: "#ffb3a7" }}>
           {error}
         </p>
       )}
@@ -313,10 +346,10 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
             {tr(lang, "form.signInNote")}
           </p>
         )}
-        <p className="text-center t-footnote ink-4">
+        <p className="text-center t-footnote ink-3">
           {tr(lang, "gallery.priceNote").replace("{price}", priceLabel)}
         </p>
-        <p className="text-center t-footnote ink-4">{tr(lang, "form.retention")}</p>
+        <p className="text-center t-footnote ink-3">{tr(lang, "form.retention")}</p>
       </div>
     </form>
   );
@@ -324,10 +357,13 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
 
 const LANG_LABEL: Record<Language, string> = { kn: "ಕನ್ನಡ", kok: "कोंकणी", hi: "हिंदी", en: "English" };
 
-async function post(url: string, body: unknown) {
+async function post(url: string, body: unknown, eventToken?: string) {
   const res = await fetch(url, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(eventToken ? { "x-event-token": eventToken } : {}),
+    },
     body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));

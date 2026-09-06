@@ -1,6 +1,6 @@
 export default function Privacy() {
   return (
-    <article className="glass tier-2 max-w-2xl space-y-5 p-6 rise">
+    <article className="glass glass-rel tier-2 max-w-2xl space-y-5 p-6 rise">
       <h1 className="t-title-1 ink-1">What we do with your photos</h1>
       <p className="t-body ink-2">
         Short version: we use them to make your trailer, we delete them after 30 days, and we never generate a face.

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { readJson } from "@/lib/http";
 import { z } from "zod";
 import { storage } from "@/lib/storage";
 import { moderationProvider } from "@/lib/moderation";
 import * as repo from "@/lib/repo";
+import { authorizeEvent } from "@/lib/auth/eventAccess";
 
 const Body = z.object({
   assets: z.array(
@@ -17,9 +19,10 @@ const Body = z.object({
  */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
-  if (!(await repo.getEvent(id))) return NextResponse.json({ error: "No such event" }, { status: 404 });
+  const access = await authorizeEvent(id, req);
+  if (!access.ok) return access.response;
 
-  const parsed = Body.safeParse(await req.json());
+  const parsed = Body.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues }, { status: 400 });
 
   const store = storage();
