@@ -23,26 +23,33 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     );
   }
 
-  // Re-render policy: the first render is free, then one free re-render, then paid.
-  const [counted] = await sql()`select count(*)::int as count from render_jobs where event_id = ${id}`;
-  const priorJobs = Number(counted?.count ?? 0);
-  const isRerender = priorJobs > 0;
+  // Re-render policy: the first render is free, then one free re-render, then
+  // paid. Decided inside a transaction that locks the event row — two taps on
+  // a slow phone must not buy one free re-render twice, because each render
+  // spends model seconds.
+  const decision = await sql().begin(async (tx) => {
+    await tx`select id from events where id = ${id} for update`;
+    const [counted] = await tx`select count(*)::int as count from render_jobs where event_id = ${id}`;
+    const isRerender = Number(counted?.count ?? 0) > 0;
+    if (!isRerender) return { ok: true as const, isRerender };
 
-  if (isRerender) {
-    if (event.free_rerender_used) {
-      const paidRerender = await sql()`select 1 from payments
-        where event_id = ${id} and purpose = 'rerender' and status = 'paid'
-        and created_at > (select max(queued_at) from render_jobs where event_id = ${id}) limit 1`;
-      if (paidRerender.length === 0) {
-        return NextResponse.json({ error: "Free re-render already used", needsPayment: "rerender" }, { status: 402 });
-      }
-    } else {
-      await sql()`update events set free_rerender_used = true, updated_at = now() where id = ${id}`;
+    const [ev] = await tx`select free_rerender_used from events where id = ${id}`;
+    if (!ev?.free_rerender_used) {
+      await tx`update events set free_rerender_used = true, updated_at = now() where id = ${id}`;
+      return { ok: true as const, isRerender };
     }
+    const paidRerender = await tx`select 1 from payments
+      where event_id = ${id} and purpose = 'rerender' and status = 'paid'
+        and created_at > (select max(queued_at) from render_jobs where event_id = ${id}) limit 1`;
+    return paidRerender.length > 0 ? { ok: true as const, isRerender } : { ok: false as const, isRerender };
+  });
+
+  if (!decision.ok) {
+    return NextResponse.json({ error: "Free re-render already used", needsPayment: "rerender" }, { status: 402 });
   }
 
-  const job = await repo.createJob(id, isRerender);
+  const job = await repo.createJob(id, decision.isRerender);
   await enqueueRender({ jobId: job.id, eventId: id });
 
-  return NextResponse.json({ jobId: job.id, isRerender, unlocked: await isUnlocked(id) });
+  return NextResponse.json({ jobId: job.id, isRerender: decision.isRerender, unlocked: await isUnlocked(id) });
 }

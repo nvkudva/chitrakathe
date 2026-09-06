@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { config } from "../config";
-import { CostLedger, CostCeilingExceeded } from "../cost/ledger";
+import { CostLedger, CostCeilingExceeded, OVERHEAD_RESERVE_PAISE } from "../cost/ledger";
 import { ffmpeg, durationOf } from "./ffmpeg";
 import { withTempDir } from "./tmp";
 import { SIZES, FPS, photoFilter } from "./motion";
@@ -58,6 +58,9 @@ export async function renderBrief(opts: RenderOptions): Promise<RenderResult> {
 
   return withTempDir(`job-${opts.jobId}`, async (work) => {
     try {
+      // Reserve compute and storage before spending anything. A job that
+      // cannot afford its own overhead is refused here, having spent nothing.
+      ledger.reserve(OVERHEAD_RESERVE_PAISE);
       await progress("prepare", 2);
 
       // 1. Pull every photo the storyboard names, once.

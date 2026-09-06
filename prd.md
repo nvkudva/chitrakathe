@@ -200,6 +200,8 @@ Every job writes `cost_entries` rows as it runs. The job carries a **hard ceilin
 | Payment gateway | 2% + 18% GST on ₹499 | ₹11.78 |
 | **Total on a paid job** | | **₹62.83** |
 
+Compute and storage cannot be measured until a render finishes, so they are reserved before the first shot runs; the reservation counts against every shot's affordability check and settles at the end without ever throwing. A job that cannot afford its own overhead is refused before it spends anything.
+
 **Hard ceiling: ₹95 per job.** Headroom covers a retry, a third generative shot, or a provider price move, and nothing more.
 
 ### Margin

@@ -41,6 +41,8 @@ Three structural decisions protect that margin:
 2. **Only 1–2 shots per trailer are generated.** The other 7–9 are the family's own photos under scripted camera motion, composited server-side with ffmpeg. Model seconds go where they show.
 3. **A hard ceiling of ₹95 per job, enforced in code.** Every priced operation is quoted against the ledger *before* it runs. A shot that cannot be afforded degrades to its authored photo fallback; a job that cannot be rendered inside the ceiling is refused, and the family is not charged. `CostLedger` is the only thing in the codebase allowed to spend money.
 
+   Compute and storage are only knowable once a render finishes, so they are **reserved up front**. That reservation counts against every shot's affordability check, and the real charge settles against it at the end without ever throwing. A job that cannot afford even its own overhead is refused at the first line of the pipeline, having spent nothing — which is the only useful moment to refuse.
+
 The price table lives in `src/lib/cost/prices.ts` with the date it was last verified. The dashboard flags it after 45 days. Rendering with a model that has no price entry throws — the ceiling cannot be enforced against an unknown price.
 
 ---

@@ -58,6 +58,8 @@ const Schema = z.object({
   OUTPUT_RETENTION_DAYS: int(90),
 
   ADMIN_TOKEN: z.string().default(""),
+  /** Signs local-driver upload and download URLs. Set in production. */
+  SIGNING_SECRET: z.string().default("dev-only-signing-secret"),
   DEBUG_KEEP_TEMP: bool,
 });
 

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CostLedger, CostCeilingExceeded } from "../src/lib/cost/ledger.ts";
+import { CostLedger, CostCeilingExceeded, OVERHEAD_RESERVE_PAISE } from "../src/lib/cost/ledger.ts";
 import { videoPrice } from "../src/lib/cost/prices.ts";
 import { gatewayFeePaise, marginPct, usdToPaise } from "../src/lib/money.ts";
 
@@ -39,4 +39,25 @@ test("launch price clears the margin claimed in the README", () => {
   const direct = model + 75 + 100 + 200 + 100; // tts, moderation, compute, storage
   const total = direct + gatewayFeePaise(price);
   assert.ok(marginPct(price, total) > 85, `margin fell to ${marginPct(price, total).toFixed(1)}%`);
+});
+
+test("a job that cannot afford its own overhead is refused before spending", () => {
+  const l = new CostLedger("t", async () => {}, 100);
+  assert.throws(() => l.reserve(OVERHEAD_RESERVE_PAISE), CostCeilingExceeded);
+  assert.equal(l.spentPaise, 0, "nothing may be spent before the refusal");
+});
+
+test("reserved overhead is counted while shots are being decided", () => {
+  const l = new CostLedger("t", async () => {}, 5000);
+  l.reserve(OVERHEAD_RESERVE_PAISE);
+  assert.equal(l.remainingPaise, 5000 - OVERHEAD_RESERVE_PAISE);
+  assert.equal(l.canAfford(5000 - OVERHEAD_RESERVE_PAISE + 1), false);
+});
+
+test("compute settles against the reserve and never breaks the ceiling", async () => {
+  const l = new CostLedger("t", async () => {}, 9500);
+  l.reserve(OVERHEAD_RESERVE_PAISE);
+  await l.chargeVideo("fal", "fal-ai/bytedance/seedance/v1/lite/image-to-video", 10);
+  // Even an overrun on compute must not throw: the model money is already spent.
+  await assert.doesNotReject(() => l.chargeCompute(100_000));
 });

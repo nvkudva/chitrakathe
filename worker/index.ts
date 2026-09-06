@@ -45,7 +45,7 @@ async function handleRender(payload: RenderPayload) {
     for (const out of result.outputs) {
       const masterKey = keys.master(jobId, out.aspect);
       const previewKey = keys.preview(jobId, out.aspect);
-      const posterKey = keys.poster(jobId);
+      const posterKey = keys.poster(jobId, out.aspect);
       await store.put(masterKey, await fs.readFile(out.masterPath), "video/mp4");
       await store.put(previewKey, await fs.readFile(out.previewPath), "video/mp4");
       await store.put(posterKey, await fs.readFile(out.posterPath), "image/jpeg");
