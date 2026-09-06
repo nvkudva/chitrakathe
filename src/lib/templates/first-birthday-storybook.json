@@ -22,7 +22,7 @@
     "en": "latin"
   },
   "photosRequired": {
-    "min": 6,
+    "min": 8,
     "max": 10
   },
   "music": "playful-strings",
@@ -267,5 +267,15 @@
         }
       ]
     }
+  ],
+  "photoSlots": [
+    "newborn",
+    "montage",
+    "montage",
+    "montage",
+    "montage",
+    "milestone",
+    "family_group",
+    "wide_backdrop"
   ]
 }

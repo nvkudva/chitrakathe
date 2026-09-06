@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
+import { t as tr } from "@/lib/i18n/ui";
+import type { Language } from "@/lib/templates/schema";
 
 type Job = {
   id: string;
@@ -12,73 +14,98 @@ type Job = {
   error: string | null;
   degraded: string[];
   unlocked: boolean;
+  signedIn: boolean;
+  owned: boolean;
   outputs: { aspect: string; previewUrl: string; posterUrl: string | null }[];
 };
 
-const STAGE_COPY: Record<string, string> = {
-  prepare: "Preparing your photos",
-  voice: "Recording the voiceover",
-  shots: "Shooting the scenes",
-  assemble: "Cutting it together",
-  derive: "Finishing",
-};
-
-export default function JobView({ jobId }: { jobId: string }) {
+export default function JobView({ jobId, lang, priceLabel }: { jobId: string; lang: Language; priceLabel: string }) {
   const [job, setJob] = useState<Job | null>(null);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const alive = useRef(true);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const failures = useRef(0);
 
-  useEffect(() => {
-    let live = true;
-    const tick = async () => {
-      const res = await fetch(`/api/jobs/${jobId}`);
-      if (!res.ok) return;
+  /**
+   * Poll with backoff, and never stop on a single bad response.
+   *
+   * The previous version returned early when `res.ok` was false, before
+   * rescheduling — so one 502, or a phone waking from sleep mid-request, froze
+   * the page at whatever percentage it happened to be showing, forever.
+   */
+  const poll = useCallback(async () => {
+    if (!alive.current) return;
+    try {
+      const res = await fetch(`/api/jobs/${jobId}`, { cache: "no-store" });
+      if (!res.ok) throw new Error(String(res.status));
       const j = (await res.json()) as Job;
-      if (!live) return;
+      failures.current = 0;
+      if (!alive.current) return;
       setJob(j);
-      if (j.status === "queued" || j.status === "running") setTimeout(tick, 2500);
-    };
-    void tick();
-    return () => {
-      live = false;
-    };
+      if (j.status === "queued" || j.status === "running") {
+        timer.current = setTimeout(poll, 2500);
+      }
+    } catch {
+      failures.current += 1;
+      if (!alive.current) return;
+      // 3s, 6s, 12s, 24s, capped — a render takes minutes, so patience is free.
+      const delay = Math.min(3000 * 2 ** (failures.current - 1), 30000);
+      timer.current = setTimeout(poll, delay);
+    }
   }, [jobId]);
 
-  if (!job) return <p className="text-white/50">Loading…</p>;
+  useEffect(() => {
+    alive.current = true;
+    void poll();
+    // Phones suspend timers in a background tab; re-poll the moment they return.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        if (timer.current) clearTimeout(timer.current);
+        void poll();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      alive.current = false;
+      if (timer.current) clearTimeout(timer.current);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [poll]);
 
-  if (job.status === "refused_over_ceiling") {
-    return (
-      <Panel title="We stopped this render">
-        <p className="text-white/70">
-          It would have cost more than we allow ourselves to spend on one trailer, so we stopped instead of
-          overrunning. You have not been charged. Write to us and we will render it by hand.
-        </p>
-      </Panel>
-    );
+  if (!job) {
+    return <div className="glass tier-2 h-40 animate-pulse p-6" aria-busy="true" />;
   }
 
-  if (job.status === "failed") {
+  if (job.status === "refused_over_ceiling" || job.status === "failed") {
     return (
-      <Panel title="Something went wrong">
-        <p className="text-white/70">{job.error ?? "The render failed."} You have not been charged.</p>
-      </Panel>
+      <div className="glass tier-3 space-y-3 p-6">
+        <h1 className="t-title-2 ink-1">{tr(lang, "job.failed")}</h1>
+        <p className="t-body ink-2">{tr(lang, "job.failedBody")}</p>
+      </div>
     );
   }
 
   if (job.status !== "succeeded") {
+    const pct = Math.max(4, job.progress);
     return (
-      <Panel title="Making your trailer">
-        <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="glass tier-2 space-y-4 p-6">
+        <h1 className="t-title-2 ink-1">{tr(lang, "job.rendering")}</h1>
+        <div className="glass tier-0 h-2 overflow-hidden" style={{ ["--r" as string]: "999px" }}>
           <div
-            className="h-full bg-[var(--color-accent)] transition-all duration-700"
-            style={{ width: `${Math.max(4, job.progress)}%` }}
+            className="progress-fill h-full rounded-full"
+            style={{
+              background: "var(--color-accent)",
+              transform: `scaleX(${pct / 100})`,
+              width: "100%",
+            }}
           />
         </div>
-        <p className="mt-3 text-white/60">
-          {STAGE_COPY[job.stage ?? ""] ?? "Queued"} · {job.progress}%
+        <p className="t-callout ink-2" aria-live="polite">
+          {tr(lang, `job.stage.${job.stage ?? "prepare"}`)}
         </p>
-        <p className="mt-1 text-xs text-white/40">Usually 4 to 8 minutes. This page updates itself.</p>
-      </Panel>
+        <p className="t-footnote ink-4">{tr(lang, "job.wait")}</p>
+      </div>
     );
   }
 
@@ -93,7 +120,11 @@ export default function JobView({ jobId }: { jobId: string }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ eventId: job!.eventId, jobId: job!.id, purpose: "unlock" }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401 || data.needsAuth) {
+        window.location.href = `/api/auth/signin?returnTo=${encodeURIComponent(location.pathname)}`;
+        return;
+      }
       if (data.alreadyPaid) return void window.location.reload();
       if (!res.ok) throw new Error(data.error ?? "Could not start the payment");
 
@@ -115,67 +146,64 @@ export default function JobView({ jobId }: { jobId: string }) {
     }
   }
 
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
   return (
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <div className="space-y-6">
-        <h1 className="text-3xl font-semibold">Ready</h1>
+        <h1 className="t-title-1 ink-1">{tr(lang, "job.done")}</h1>
 
         {portrait && (
-          <video
-            src={portrait.previewUrl}
-            poster={portrait.posterUrl ?? undefined}
-            controls
-            playsInline
-            className="w-full max-w-sm rounded-xl border border-white/10"
-          />
+          <div className="glass tier-2 mx-auto w-full max-w-sm overflow-hidden p-2">
+            <video
+              src={portrait.previewUrl}
+              poster={portrait.posterUrl ?? undefined}
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full rounded-2xl"
+            />
+          </div>
         )}
 
         {!job.unlocked ? (
-          <div className="max-w-sm space-y-3 rounded-xl border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/5 p-5">
-            <p className="text-sm text-white/70">
-              This preview is watermarked. Pay once to download it clean, in both sizes, as many times as you like.
-            </p>
-            <button
-              onClick={pay}
-              disabled={paying}
-              className="w-full rounded-lg bg-[var(--color-accent)] px-6 py-3 font-medium text-black disabled:opacity-50"
-            >
-              {paying ? "Opening UPI…" : "Unlock and download"}
+          <div className="glass tier-3 mx-auto w-full max-w-sm space-y-4 p-5">
+            <p className="t-callout ink-2">{tr(lang, "preview.watermarked")}</p>
+            <button onClick={pay} disabled={paying} className="btn btn-primary press focus-ring w-full">
+              {paying ? "…" : tr(lang, "pay.cta").replace("{price}", priceLabel)}
             </button>
-            <p className="text-center text-xs text-white/40">UPI, cards, netbanking</p>
+            <p className="text-center t-footnote ink-4">{tr(lang, "pay.upi")}</p>
           </div>
         ) : (
-          <div className="flex max-w-sm flex-col gap-2">
+          <div className="mx-auto flex w-full max-w-sm flex-col gap-2">
             {job.outputs.map((o) => (
               <a
                 key={o.aspect}
                 href={`/api/download/${job.id}?aspect=${encodeURIComponent(o.aspect)}`}
-                className="rounded-lg border border-white/15 px-5 py-3 text-center hover:border-[var(--color-accent)]"
+                className="glass tier-2 press focus-ring block px-5 py-4 text-center t-callout ink-1"
               >
-                Download {o.aspect} {o.aspect === "9:16" ? "(WhatsApp Status)" : "(Instagram)"}
+                {tr(lang, o.aspect === "9:16" ? "download.portrait" : "download.square")}
               </a>
             ))}
           </div>
         )}
 
-        {job.degraded.length > 0 && (
-          <p className="text-xs text-white/40">
-            {job.degraded.length} shot{job.degraded.length > 1 ? "s" : ""} used your photos instead of a generated
-            scene, so this render cost less than usual.
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(shareUrl)}`}
+          target="_blank"
+          rel="noreferrer"
+          className="glass tier-2 press focus-ring mx-auto flex w-full max-w-sm items-center justify-center gap-2 px-5 py-4 t-callout ink-1"
+        >
+          {tr(lang, "share.whatsapp")}
+        </a>
+
+        {error && (
+          <p role="alert" className="t-callout" style={{ color: "#ffb3a7" }}>
+            {error}
           </p>
         )}
-        {error && <p className="text-sm text-red-300">{error}</p>}
       </div>
     </>
-  );
-}
-
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="max-w-xl space-y-3">
-      <h1 className="text-3xl font-semibold">{title}</h1>
-      {children}
-    </div>
   );
 }

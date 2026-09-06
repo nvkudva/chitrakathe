@@ -22,7 +22,7 @@
     "en": "latin"
   },
   "photosRequired": {
-    "min": 6,
+    "min": 8,
     "max": 10
   },
   "music": "temple-warm",
@@ -319,5 +319,15 @@
         }
       ]
     }
+  ],
+  "photoSlots": [
+    "face_close",
+    "family_hands",
+    "parents",
+    "elders",
+    "montage",
+    "montage",
+    "montage",
+    "wide_backdrop"
   ]
 }

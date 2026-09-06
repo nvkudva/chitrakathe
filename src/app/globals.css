@@ -1,12 +1,395 @@
 @import "tailwindcss";
 
+/* ===========================================================================
+   Chitrakathe — Liquid Glass
+   Implements docs/design-spec.md. Read that before changing anything here.
+
+   Two rules that are correctness, not taste:
+   1. Glass is a SAMPLING material. It needs the .scene layer behind it or it
+      renders as grey plastic. Never give .scene a backdrop-filter.
+   2. Indic scripts are never letter-spaced. Every type token reads
+      var(--tracking); nothing sets letter-spacing literally. Tracking a
+      Kannada conjunct renders ನಾಮಕರಣ as ನಾ ಮ ಕ ರ ಣ. Same rule the video
+      renderer enforces in src/lib/render/cards.ts.
+   =========================================================================== */
+
 @theme {
-  --color-ink: #FBF3E4;
-  --color-bg: #120508;
-  --color-accent: #D4A017;
-  --color-muted: #7B1E28;
-  --font-display: "Noto Serif", Georgia, serif;
+  /* ---- substrate; scene-* are overwritten per template ---- */
+  --color-void: #08070a;
+  --color-scene-base: #130608;
+  --color-scene-tint: #7b1e28;
+  --color-scene-accent: #d4a017;
+
+  /* ---- ink: an alpha ladder over any tier ---- */
+  --color-ink: #fbf3e4;
+  --color-accent: #d4a017;
+  --color-accent-text: #e3b53a;
+
+  /* ---- motion ---- */
+  --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-fast: cubic-bezier(0.4, 0, 1, 1);
+  --ease-overshoot: cubic-bezier(0.22, 1.2, 0.36, 1);
+  --dur-fast: 120ms;
+  --dur-quick: 200ms;
+  --dur-base: 280ms;
+  --dur-slow: 420ms;
+
+  /* ---- continuous-ish radii ---- */
+  --radius-field: 14px;
+  --radius-card: 22px;
+  --radius-sheet: 28px;
+  --radius-pill: 999px;
 }
 
-html, body { background: var(--color-bg); color: var(--color-ink); }
-body { font-family: "Noto Sans", system-ui, sans-serif; }
+:root {
+  --scene-tint-a: 14%;
+  --light-x: 50%;
+  --light-y: -18%;
+
+  /* Latin default. Zeroed for every Indic script below. */
+  --tracking: 0em;
+  --lh-scale: 1;
+
+  --ink-1: rgb(from var(--color-ink) r g b / 1);
+  --ink-2: rgb(from var(--color-ink) r g b / 0.74);
+  --ink-3: rgb(from var(--color-ink) r g b / 0.62);
+  --ink-4: rgb(from var(--color-ink) r g b / 0.46);
+
+  --mat-0-backdrop: blur(8px) saturate(140%);
+  --mat-0-fill: linear-gradient(180deg, rgb(0 0 0 / 0.24) 0%, rgb(0 0 0 / 0.1) 62%, rgb(0 0 0 / 0.06) 100%),
+    rgb(255 255 255 / 0.045);
+  --mat-1-backdrop: blur(24px) saturate(180%) brightness(1.06);
+  --mat-1-fill: linear-gradient(180deg, rgb(255 255 255 / 0.11) 0%, rgb(255 255 255 / 0.05) 48%, rgb(255 255 255 / 0.065) 100%),
+    color-mix(in oklab, var(--color-scene-base) 52%, transparent);
+  --mat-2-backdrop: blur(16px) saturate(150%) brightness(1.03);
+  --mat-2-fill: linear-gradient(180deg, rgb(255 255 255 / 0.085) 0%, rgb(255 255 255 / 0.045) 44%, rgb(255 255 255 / 0.055) 100%),
+    color-mix(in oklab, var(--color-scene-base) 26%, transparent);
+  --mat-3-backdrop: blur(40px) saturate(200%) brightness(1.1);
+  --mat-3-fill: linear-gradient(180deg, rgb(255 255 255 / 0.135) 0%, rgb(255 255 255 / 0.065) 40%, rgb(255 255 255 / 0.085) 100%),
+    color-mix(in oklab, var(--color-scene-base) 44%, transparent);
+}
+
+/* Indic: tracking off, line boxes looser. Correctness — see the header. */
+:lang(kn),
+:lang(hi),
+:lang(kok),
+[data-script="indic"] {
+  --tracking: 0em;
+  --lh-scale: 1.1;
+}
+
+/* ---------------------------------------------------------------------------
+   Fallback ladder. Three independent gates, one geometry. A user must not be
+   able to tell which path they got by anything except translucency, so only
+   the fill changes — radii, rim, shadow and spacing are identical.
+   The flat fill is never LIGHTER than the glass it replaces, so contrast can
+   only improve on the fallback path.
+   --------------------------------------------------------------------------- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass: 0; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --glass: 0; }
+}
+html[data-glass="off"] { --glass: 0; }
+
+html {
+  background: var(--color-void);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  color: var(--ink-1);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui,
+    "Noto Sans", "Noto Sans Kannada", "Noto Sans Devanagari", sans-serif;
+  font-size: 16px;
+  line-height: calc(1.52 * var(--lh-scale));
+  letter-spacing: var(--tracking);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---- the scene: the only saturated colour in the app ---- */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--color-scene-base);
+  background-image:
+    radial-gradient(112% 74% at 50% -12%,
+      color-mix(in oklab, var(--color-scene-tint) var(--scene-tint-a), transparent) 0%, transparent 62%),
+    radial-gradient(84% 60% at 88% 104%,
+      color-mix(in oklab, var(--color-scene-tint) calc(var(--scene-tint-a) * 0.55), transparent) 0%, transparent 70%),
+    radial-gradient(70% 52% at 4% 88%,
+      color-mix(in oklab, var(--color-scene-accent) 6%, transparent) 0%, transparent 66%);
+}
+
+/* Grain, as SVG turbulence rather than a base64 PNG: a noise tile that reads
+   well is ~16 KB as PNG and ~300 bytes as this. Kills gradient banding on
+   8-bit Android panels, which is very visible on a near-black field. */
+.scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+}
+
+.app { position: relative; z-index: 1; }
+
+/* ---------------------------------------------------------------------------
+   Glass tiers
+   --------------------------------------------------------------------------- */
+.glass {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--r, var(--radius-card));
+}
+.glass > * { position: relative; z-index: 1; }
+
+/* (a) the rim — a masked gradient ring, not a border. Top arc catches the
+   light, sides go nearly black, bottom picks up a weak bounce. The 2.7:1
+   top:bottom ratio is what stops it reading as a fake bevel. */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg,
+    rgb(255 255 255 / 0.38) 0%,
+    rgb(255 255 255 / 0.11) 18%,
+    rgb(255 255 255 / 0.035) 52%,
+    rgb(255 255 255 / 0.05) 82%,
+    rgb(255 255 255 / 0.14) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+  transition: background var(--dur-quick) var(--ease-out-soft);
+}
+
+/* (b) body sheen — what a curved top face does to a distant light */
+.glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(140% 100% at var(--light-x) var(--light-y),
+    rgb(255 255 255 / 0.1) 0%, rgb(255 255 255 / 0.03) 26%, transparent 46%);
+}
+
+.tier-0 {
+  --r: var(--radius-field);
+  background: var(--mat-0-fill);
+  -webkit-backdrop-filter: var(--mat-0-backdrop);
+  backdrop-filter: var(--mat-0-backdrop);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.45), inset 0 -1px 0 rgb(255 255 255 / 0.07),
+    0 1px 0 rgb(255 255 255 / 0.045);
+}
+/* recessed: the light is inverted — dark on top, faint bounce below */
+.tier-0::before {
+  background: linear-gradient(180deg,
+    rgb(255 255 255 / 0.02) 0%, rgb(255 255 255 / 0.05) 40%, rgb(255 255 255 / 0.16) 100%);
+}
+.tier-0::after { background: none; }
+
+.tier-1 {
+  --r: 0px;
+  background: var(--mat-1-fill);
+  -webkit-backdrop-filter: var(--mat-1-backdrop);
+  backdrop-filter: var(--mat-1-backdrop);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 28px -10px rgb(0 0 0 / 0.75);
+  border-bottom: 1px solid rgb(255 255 255 / 0.12);
+}
+.tier-1::before { display: none; }
+
+.tier-2 {
+  --r: var(--radius-card);
+  background: var(--mat-2-fill);
+  -webkit-backdrop-filter: var(--mat-2-backdrop);
+  backdrop-filter: var(--mat-2-backdrop);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), inset 0 -1px 0 rgb(0 0 0 / 0.3),
+    0 8px 24px -12px rgb(0 0 0 / 0.7), 0 1px 2px rgb(0 0 0 / 0.4);
+  contain: paint;
+}
+
+.tier-3 {
+  --r: var(--radius-sheet);
+  background: var(--mat-3-fill);
+  -webkit-backdrop-filter: var(--mat-3-backdrop);
+  backdrop-filter: var(--mat-3-backdrop);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24), inset 0 -1px 0 rgb(0 0 0 / 0.36),
+    0 24px 64px -16px rgb(0 0 0 / 0.82), 0 2px 8px rgb(0 0 0 / 0.5);
+}
+.tier-3::before { padding: 1.5px; }
+
+/* ---- the opaque path. No backdrop-filter is emitted at all: blur(0) still
+   allocates the backdrop texture, which is the cost we are avoiding. ---- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tier-0, .tier-1, .tier-2, .tier-3 { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .tier-0 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 3%); }
+  .tier-1 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 9%); }
+  .tier-2 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 7%); }
+  .tier-3 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 13%); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .tier-0, .tier-1, .tier-2, .tier-3 { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .tier-0 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 3%); }
+  .tier-1 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 9%); }
+  .tier-2 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 7%); }
+  .tier-3 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 13%); }
+}
+html[data-glass="off"] .tier-0,
+html[data-glass="off"] .tier-1,
+html[data-glass="off"] .tier-2,
+html[data-glass="off"] .tier-3 {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html[data-glass="off"] .tier-0 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 3%); }
+html[data-glass="off"] .tier-1 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 9%); }
+html[data-glass="off"] .tier-2 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 7%); }
+html[data-glass="off"] .tier-3 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 13%); }
+
+/* Budget: at most 3 composited blurs per screen. On a phone the nav and one
+   sheet own them, so cards go flat. */
+@media (max-width: 479px) {
+  .tier-2 { backdrop-filter: none; -webkit-backdrop-filter: none;
+    background: color-mix(in oklab, var(--color-scene-base) 100%, white 7%); }
+}
+
+/* ---------------------------------------------------------------------------
+   Type scale. Sizes are literal; tracking and line-height go through the
+   variables so the Indic rule above reaches every one of them.
+   --------------------------------------------------------------------------- */
+.t-display { font-size: clamp(28px, 6.2vw, 40px); font-weight: 700; line-height: calc(1.14 * var(--lh-scale)); letter-spacing: calc(-0.021em + var(--tracking)); }
+.t-title-1 { font-size: 28px; font-weight: 700; line-height: calc(1.18 * var(--lh-scale)); letter-spacing: calc(-0.018em + var(--tracking)); }
+.t-title-2 { font-size: 22px; font-weight: 600; line-height: calc(1.24 * var(--lh-scale)); letter-spacing: calc(-0.012em + var(--tracking)); }
+.t-title-3 { font-size: 19px; font-weight: 600; line-height: calc(1.3 * var(--lh-scale)); letter-spacing: calc(-0.006em + var(--tracking)); }
+.t-body-lg { font-size: 17px; font-weight: 400; line-height: calc(1.5 * var(--lh-scale)); }
+.t-body    { font-size: 16px; font-weight: 400; line-height: calc(1.52 * var(--lh-scale)); }
+.t-callout { font-size: 15px; font-weight: 500; line-height: calc(1.47 * var(--lh-scale)); }
+.t-subhead { font-size: 14px; font-weight: 500; line-height: calc(1.45 * var(--lh-scale)); }
+.t-footnote{ font-size: 13px; font-weight: 400; line-height: calc(1.46 * var(--lh-scale)); }
+.t-caption { font-size: 12px; font-weight: 500; line-height: calc(1.42 * var(--lh-scale)); }
+
+/* Overline is the one tracked style, so it is Latin-only by construction:
+   Indic gets a larger size and no tracking instead of spaced-out glyphs. */
+.t-overline { font-size: 11px; font-weight: 600; line-height: calc(1.36 * var(--lh-scale)); letter-spacing: 0.14em; text-transform: uppercase; }
+:lang(kn) .t-overline, :lang(hi) .t-overline, :lang(kok) .t-overline,
+[data-script="indic"] .t-overline { font-size: 13px; letter-spacing: 0; text-transform: none; line-height: calc(1.55 * var(--lh-scale)); }
+
+.ink-1 { color: var(--ink-1); }
+.ink-2 { color: var(--ink-2); }
+.ink-3 { color: var(--ink-3); }
+.ink-4 { color: var(--ink-4); }
+
+/* ---------------------------------------------------------------------------
+   Controls
+   --------------------------------------------------------------------------- */
+.press {
+  transition: transform var(--dur-fast) var(--ease-out-soft), filter var(--dur-fast) var(--ease-out-soft);
+}
+.press:active { transform: scale(0.96); filter: brightness(1.06); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 14px 24px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: calc(1.3 * var(--lh-scale));
+  letter-spacing: var(--tracking);
+  cursor: pointer;
+  /* min-height, never height: Kannada line boxes are taller and a fixed
+     height clips the vowel signs above and below the baseline. */
+}
+.btn-primary {
+  color: #17110a;
+  background: linear-gradient(180deg,
+    color-mix(in oklab, var(--color-accent) 100%, white 14%) 0%,
+    var(--color-accent) 52%,
+    color-mix(in oklab, var(--color-accent) 100%, black 10%) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), inset 0 -1px 0 rgb(0 0 0 / 0.18),
+    0 6px 20px -8px color-mix(in oklab, var(--color-accent) 60%, transparent);
+}
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-secondary { color: var(--ink-1); }
+
+.field {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  color: var(--ink-1);
+  /* 16px minimum: below it, iOS Safari zooms the viewport on focus, which on
+     a six-field form is the most destructive mobile bug available. */
+  font-size: 16px;
+  line-height: calc(1.5 * var(--lh-scale));
+  letter-spacing: var(--tracking);
+  font-family: inherit;
+  border: 0;
+  outline: none;
+  background: transparent;
+}
+.field::placeholder { color: var(--ink-4); }
+
+.focus-ring:focus-visible,
+.field:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 45%, transparent);
+}
+
+/* Segmented control: the thumb animates width as well as position, because
+   ಕನ್ನಡ / कोंकणी / हिंदी / English are all different widths. */
+.seg-thumb {
+  transition: transform 340ms var(--ease-out-soft), width 340ms var(--ease-out-soft);
+}
+
+.card-press {
+  transition: transform 460ms var(--ease-out-soft), box-shadow var(--dur-quick) var(--ease-out-soft);
+}
+.card-press:active { transform: scale(0.972); }
+@media (hover: hover) {
+  .card-press:hover { transform: translateY(-2px); }
+  .card-press:hover::before {
+    background: linear-gradient(180deg,
+      rgb(255 255 255 / 0.5) 0%, rgb(255 255 255 / 0.14) 18%,
+      rgb(255 255 255 / 0.04) 52%, rgb(255 255 255 / 0.06) 82%, rgb(255 255 255 / 0.16) 100%);
+  }
+}
+
+/* Progress: scaleX, not width — a width transition on a 2px bar relayouts on
+   every 2.5s poll. */
+.progress-fill {
+  transform-origin: left center;
+  transition: transform 600ms var(--ease-standard);
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 320ms var(--ease-standard) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .press:active, .card-press:active { transform: none; }
+}

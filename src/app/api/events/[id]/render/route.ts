@@ -4,6 +4,8 @@ import { getTemplate } from "@/lib/templates";
 import { isUnlocked } from "@/lib/payments";
 import { sql } from "@/lib/db";
 import * as repo from "@/lib/repo";
+import { currentSession } from "@/lib/auth/session";
+import { isConfigured } from "@/lib/auth/google";
 
 /**
  * Enqueues a render. This route never renders — it writes a row and a queue
@@ -13,6 +15,30 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   const { id } = await ctx.params;
   const event = await repo.getEvent(id);
   if (!event) return NextResponse.json({ error: "No such event" }, { status: 404 });
+
+  /*
+   * The gate is here, not at the door and not at payment.
+   *
+   * The render is the only irreversible spend in the funnel — roughly Rs 51
+   * whether or not the family ever pays — so it is the only place a sign-in
+   * earns its keep. By this point they have typed the brief and chosen every
+   * photo, which is maximum sunk cost for zero delivered value, and it buys a
+   * verified email, a per-identity cap on free previews, and a trailer that
+   * survives the tab closing.
+   *
+   * Watching a trailer at /t/<jobId> stays public and unauthenticated. The
+   * whole growth loop is a WhatsApp forward; a sign-in wall there would kill it.
+   */
+  const session = await currentSession();
+  if (isConfigured() && !session) {
+    return NextResponse.json({ error: "Sign in to start your trailer", needsAuth: true }, { status: 401 });
+  }
+  if (session) {
+    // Claim an event that was started before signing in, so the trailer lands
+    // in the account rather than being orphaned on an anonymous row.
+    await sql()`update events set user_id = ${session.userId}, claimed_at = now()
+      where id = ${id} and (user_id = ${event.user_id} and claimed_at is null)`;
+  }
 
   const template = getTemplate(event.template_id, event.template_version);
   const photos = await repo.assetKeys(id);

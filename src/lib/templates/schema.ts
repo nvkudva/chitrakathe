@@ -146,6 +146,24 @@ export const Typography = z.object({
   bodySize: z.number().default(44),
 });
 
+/**
+ * What each photo index is FOR.
+ *
+ * The storyboard consumes photos by index with fixed semantic roles — photo 0
+ * of the namakarana template gets a centre-weighted push-in on a face. Without
+ * this, the form collects camera-roll order and the montage gets the best
+ * photo while a group shot gets a face crop of somebody's shoulder.
+ *
+ * Roles are a closed list so their labels live once in the UI bundle rather
+ * than being translated per template.
+ */
+export const PHOTO_ROLES = [
+  "face_close", "family_hands", "parents", "elders", "montage", "wide_backdrop",
+  "partner_a", "partner_b", "couple_wide", "couple_close",
+  "newborn", "milestone", "house_exterior", "threshold", "interior", "family_group",
+] as const;
+export type PhotoRole = (typeof PHOTO_ROLES)[number];
+
 export const FieldDef = z.object({
   key: z.string(),
   labelKey: z.string(),
@@ -178,6 +196,8 @@ export const Template = z
     shots: z.array(Shot).min(4),
     /** Enforced cap; see prd.md §9. */
     maxGenerativeShots: z.number().int().min(0).max(3).default(2),
+    /** Index-aligned with the storyboard's photo references. */
+    photoSlots: z.array(z.enum(PHOTO_ROLES)).min(1),
   })
   .superRefine((t, ctx) => {
     const gen = t.shots.filter((s) => s.type === "generative").length;
@@ -217,6 +237,30 @@ export const Template = z
         });
       }
     }
+    // Every photo the storyboard names must have a slot the form can ask for.
+    const referenced = new Set<number>();
+    for (const s of t.shots) {
+      if ("photo" in s && typeof s.photo === "number") referenced.add(s.photo);
+      if (s.type === "photo_montage") s.photos.forEach((n) => referenced.add(n));
+      if (s.type === "generative") {
+        if (s.seedPhoto !== undefined) referenced.add(s.seedPhoto);
+        referenced.add(s.fallback.photo);
+      }
+    }
+    const highest = Math.max(...referenced);
+    if (t.photoSlots.length <= highest) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Template ${t.id} references photo ${highest} but declares only ${t.photoSlots.length} photo slots`,
+      });
+    }
+    if (t.photoSlots.length < t.photosRequired.min) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Template ${t.id} asks for ${t.photosRequired.min} photos but labels only ${t.photoSlots.length}`,
+      });
+    }
+
     const ids = t.shots.map((s) => s.id);
     if (new Set(ids).size !== ids.length) {
       ctx.addIssue({ code: "custom", message: `Template ${t.id} has duplicate shot ids` });

@@ -88,7 +88,8 @@ export async function renderBrief(opts: RenderOptions): Promise<RenderResult> {
       await fs.writeFile(path.join(work, "voice.raw"), await tts.speak(vo, brief.language));
       await ffmpeg(["-i", path.join(work, "voice.raw"), "-c:a", "aac", "-b:a", "128k", "-ar", "48000", "-ac", "1", "-y", voicePath]);
 
-      // 3. Shots, per aspect.
+      // 3. Shots, per aspect. Generated clips are produced once and reused.
+      const genCache = new Map<string, string>();
       const outputs: RenderedAspect[] = [];
       const aspects = brief.aspects;
       for (const [ai, aspect] of aspects.entries()) {
@@ -100,8 +101,10 @@ export async function renderBrief(opts: RenderOptions): Promise<RenderResult> {
           const base = 15 + (ai / aspects.length) * 55 + (si / t.shots.length) * (55 / aspects.length);
           await progress("shots", Math.round(base));
           const clip = path.join(aspectDir, `${String(si).padStart(2, "0")}_${shot.id}.mp4`);
-          const fellBack = await renderShot({ shot, t, brief, aspect, work: aspectDir, photoPaths, out: clip, ledger });
-          if (fellBack) degraded.push(shot.id);
+          const fellBack = await renderShot({
+            shot, t, brief, aspect, work: aspectDir, photoPaths, out: clip, ledger, genCache,
+          });
+          if (fellBack && !degraded.includes(shot.id)) degraded.push(shot.id);
           clips.push(clip);
         }
 
@@ -185,6 +188,16 @@ type ShotCtx = {
   photoPaths: Map<number, string>;
   out: string;
   ledger: CostLedger;
+  /**
+   * Generated clips, keyed by shot id, shared across every aspect of this job.
+   *
+   * Without this the aspect loop calls the model once per aspect: a 2-shot
+   * template exported at 9:16 and 1:1 generates four clips, pays for four, and
+   * then the ceiling refuses the last one so the square silently ships
+   * degraded. "Model spend happens exactly once per job" (prd.md 5) is only
+   * true because of this map.
+   */
+  genCache: Map<string, string>;
 };
 
 /** Renders one shot. Returns true if it degraded to a fallback. */
@@ -323,6 +336,13 @@ async function generativeShot(ctx: ShotCtx): Promise<boolean> {
   const shot = ctx.shot;
   if (shot.type !== "generative") return false;
 
+  // Already generated for another aspect of this job: re-frame, do not re-buy.
+  const cached = ctx.genCache.get(shot.id);
+  if (cached) {
+    await reframe(cached, ctx.out, ctx.aspect, shot.duration);
+    return false;
+  }
+
   const providers = videoProviders();
   let lastError: unknown = null;
 
@@ -341,21 +361,19 @@ async function generativeShot(ctx: ShotCtx): Promise<boolean> {
         prompt: shot.prompt,
         seedImage,
         seconds: shot.duration,
-        aspect: ctx.aspect,
+        // Generate once at the tallest aspect; every other export is a crop of
+        // it, so nothing is generated twice and nothing is upscaled.
+        aspect: "9:16",
         subject: shot.subject,
       });
       await ctx.ledger.chargeVideo(res.provider, res.model, res.seconds, shot.id);
 
-      const raw = path.join(ctx.work, `${shot.id}_raw.mp4`);
+      // Keep the source outside the per-aspect directory — it outlives it.
+      const raw = path.join(ctx.work, "..", `gen_${shot.id}.mp4`);
       await fs.writeFile(raw, res.mp4);
-      const size = SIZES[ctx.aspect];
-      await ffmpeg([
-        "-i", raw,
-        "-t", String(shot.duration),
-        "-vf", `scale=${size.w}:${size.h}:force_original_aspect_ratio=increase,crop=${size.w}:${size.h},fps=${FPS},format=yuv420p`,
-        "-an",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-y", ctx.out,
-      ]);
+      ctx.genCache.set(shot.id, raw);
+
+      await reframe(raw, ctx.out, ctx.aspect, shot.duration);
       return false;
     } catch (e) {
       if (e instanceof CostCeilingExceeded) throw e;
@@ -372,6 +390,18 @@ async function generativeShot(ctx: ShotCtx): Promise<boolean> {
     ease: "ease_in_out",
   });
   return true;
+}
+
+/** Crops and scales a generated clip into one export aspect. */
+async function reframe(src: string, out: string, aspect: Aspect, duration: number) {
+  const size = SIZES[aspect];
+  await ffmpeg([
+    "-i", src,
+    "-t", String(duration),
+    "-vf", `scale=${size.w}:${size.h}:force_original_aspect_ratio=increase,crop=${size.w}:${size.h},fps=${FPS},format=yuv420p`,
+    "-an",
+    "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-y", out,
+  ]);
 }
 
 // ---------------------------------------------------------------------------

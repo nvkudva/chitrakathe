@@ -12,36 +12,35 @@ export default async function Gallery({ searchParams }: { searchParams: Promise<
   const price = rupees(config().PRICE_LAUNCH_PAISE);
 
   return (
-    <div className="space-y-10">
-      <section className="space-y-4">
+    <div lang={lang} className="rise space-y-9">
+      <section className="space-y-5">
         <LanguageBar current={lang} basePath="/" />
-        <h1 className="text-4xl font-semibold">{t(lang, "app.tagline")}</h1>
-        <p className="max-w-2xl text-white/70">
-          {t(lang, "gallery.sub")} {t(lang, "gallery.priceNote").replace("{price}", price)}
+        <h1 className="t-display ink-1 max-w-[18ch]">{t(lang, "app.tagline")}</h1>
+        <p className="t-body-lg ink-2 max-w-[46ch]">{t(lang, "gallery.sub")}</p>
+        <p className="t-callout" style={{ color: "var(--color-accent-text)" }}>
+          {t(lang, "gallery.priceNote").replace("{price}", price)}
         </p>
       </section>
 
-      <section className="grid gap-5 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2">
         {templates.map((tpl) => (
           <Link
             key={tpl.id}
             href={`/create/${tpl.id}?lang=${lang}`}
-            className="group rounded-xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-[var(--color-accent)]/60"
+            className="glass tier-2 card-press focus-ring block overflow-hidden p-4"
           >
             <div
-              className="mb-4 h-40 rounded-lg"
-              style={{ background: `radial-gradient(120% 80% at 30% 20%, ${tpl.palette.muted}, ${tpl.palette.bg})` }}
+              className="mb-4 aspect-[4/3] w-full rounded-2xl"
+              style={{
+                background: `radial-gradient(120% 90% at 30% 10%, ${tpl.palette.muted}, ${tpl.palette.bg} 70%)`,
+                boxShadow: "inset 0 1px 0 rgb(255 255 255 / 0.12), inset 0 0 0 1px rgb(255 255 255 / 0.06)",
+              }}
             />
-            <h2 className="text-xl font-semibold" style={{ color: tpl.palette.ink }}>
-              {tpl.name[lang]}
-            </h2>
-            <p className="mt-1 text-sm text-white/60">{tpl.blurb[lang]}</p>
-            <p className="mt-3 text-xs uppercase tracking-widest text-white/40">
-              {tpl.shots.length} · {totalDuration(tpl)}s · {tpl.photosRequired.min}–{tpl.photosRequired.max} · {tpl.region}
+            <h2 className="t-title-3 ink-1">{tpl.name[lang]}</h2>
+            <p className="mt-1.5 t-subhead ink-3">{tpl.blurb[lang]}</p>
+            <p className="mt-4 t-caption ink-4">
+              {totalDuration(tpl)}s · {tpl.region}
             </p>
-            <span className="mt-4 inline-block text-sm text-[var(--color-accent)] group-hover:underline">
-              {t(lang, "gallery.cta")} →
-            </span>
           </Link>
         ))}
       </section>

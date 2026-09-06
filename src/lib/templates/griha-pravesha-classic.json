@@ -268,5 +268,13 @@
         }
       ]
     }
+  ],
+  "photoSlots": [
+    "house_exterior",
+    "threshold",
+    "interior",
+    "interior",
+    "family_group",
+    "wide_backdrop"
   ]
 }

@@ -1,11 +1,11 @@
 export default function Privacy() {
   return (
-    <article className="max-w-2xl space-y-5">
-      <h1 className="text-3xl font-semibold">What we do with your photos</h1>
-      <p className="text-white/70">
+    <article className="glass tier-2 max-w-2xl space-y-5 p-6 rise">
+      <h1 className="t-title-1 ink-1">What we do with your photos</h1>
+      <p className="t-body ink-2">
         Short version: we use them to make your trailer, we delete them after 30 days, and we never generate a face.
       </p>
-      <ul className="space-y-3 text-white/70">
+      <ul className="space-y-3 t-body ink-2">
         <li>
           <strong>Retention.</strong> Uploaded photos are hard-deleted 30 days after upload. Rendered videos are
           kept 90 days so you can re-download, then deleted.

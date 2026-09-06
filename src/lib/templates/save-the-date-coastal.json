@@ -22,7 +22,7 @@
     "en": "latin"
   },
   "photosRequired": {
-    "min": 6,
+    "min": 8,
     "max": 10
   },
   "music": "strings-swell",
@@ -294,5 +294,15 @@
         }
       ]
     }
+  ],
+  "photoSlots": [
+    "partner_a",
+    "partner_b",
+    "couple_wide",
+    "montage",
+    "montage",
+    "montage",
+    "couple_close",
+    "wide_backdrop"
   ]
 }

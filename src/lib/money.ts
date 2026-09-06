@@ -3,8 +3,14 @@
  */
 export type Paise = number;
 
-export const rupees = (p: Paise): string =>
-  `₹${(p / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/** Whole rupees carry no paise — Rs 499, not Rs 499.00, on a price tag. */
+export const rupees = (p: Paise): string => {
+  const whole = p % 100 === 0;
+  return `₹${(p / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 
 export const usdToPaise = (usd: number, usdInr: number): Paise =>
   Math.ceil(usd * usdInr * 100);
