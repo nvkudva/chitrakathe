@@ -1,0 +1,298 @@
+{
+  "id": "save-the-date-coastal",
+  "version": 1,
+  "occasion": "save_the_date",
+  "region": "Coastal Karnataka",
+  "name": {
+    "kn": "ದಿನಾಂಕ ನೆನಪಿಡಿ — ಕರಾವಳಿ",
+    "kok": "तारीख याद दवरात — दर्यादेगेर",
+    "hi": "तारीख याद रखें — तटीय",
+    "en": "Save the Date — Coastal"
+  },
+  "blurb": {
+    "kn": "ಇಬ್ಬರು ಜನ, ಒಂದು ದಿನಾಂಕ. ಕೊನೆ ದಿನಾಂಕದ ಮೇಲೆ.",
+    "kok": "दोगां जाण, एक तारीख. शेवट तारखेचेर.",
+    "hi": "दो लोग, एक तारीख। अंत तारीख पर।",
+    "en": "Two people, one date. It ends on the date, not on the couple."
+  },
+  "defaultScript": {
+    "kn": "kannada",
+    "kok": "devanagari",
+    "hi": "devanagari",
+    "en": "latin"
+  },
+  "photosRequired": {
+    "min": 6,
+    "max": 10
+  },
+  "music": "strings-swell",
+  "palette": {
+    "bg": "#0B1220",
+    "ink": "#F4EDE0",
+    "accent": "#C8A45C",
+    "muted": "#2D4260"
+  },
+  "typography": {
+    "hero": {
+      "kannada": "Noto Serif Kannada",
+      "devanagari": "Noto Serif Devanagari",
+      "latin": "Noto Serif"
+    },
+    "body": {
+      "kannada": "Noto Sans Kannada",
+      "devanagari": "Noto Sans Devanagari",
+      "latin": "Noto Sans"
+    },
+    "heroSize": 210,
+    "titleSize": 100,
+    "bodySize": 52
+  },
+  "fields": [
+    {
+      "key": "partnerA",
+      "labelKey": "field.partnerA",
+      "type": "text",
+      "required": true,
+      "maxLength": 40,
+      "script": "family"
+    },
+    {
+      "key": "partnerB",
+      "labelKey": "field.partnerB",
+      "type": "text",
+      "required": true,
+      "maxLength": 40,
+      "script": "family"
+    },
+    {
+      "key": "eventDate",
+      "labelKey": "field.eventDate",
+      "type": "date",
+      "required": true,
+      "maxLength": 30,
+      "script": "family"
+    },
+    {
+      "key": "venue",
+      "labelKey": "field.venue",
+      "type": "textarea",
+      "required": true,
+      "maxLength": 90,
+      "script": "family"
+    },
+    {
+      "key": "hostedBy",
+      "labelKey": "field.hostedBy",
+      "type": "text",
+      "required": false,
+      "maxLength": 80,
+      "script": "family"
+    }
+  ],
+  "strings": {
+    "kn": {
+      "saveTheDate": "ದಿನಾಂಕ ನೆನಪಿಡಿ",
+      "and": "ಮತ್ತು",
+      "theDate": "ಮದುವೆಯ ದಿನ",
+      "venue": "ಸ್ಥಳ",
+      "blessing": "ಹಿರಿಯರ ಆಶೀರ್ವಾದದೊಂದಿಗೆ",
+      "invite": "ತಾವು ಬರಬೇಕೆಂದು ಕೋರುತ್ತೇವೆ"
+    },
+    "kok": {
+      "saveTheDate": "तारीख याद दवरात",
+      "and": "आनी",
+      "theDate": "काजाराचो दीस",
+      "venue": "सुवात",
+      "blessing": "व्हडिलांच्या आशीर्वादान",
+      "invite": "तुमी येवचें अशी विनंती"
+    },
+    "hi": {
+      "saveTheDate": "तारीख याद रखें",
+      "and": "और",
+      "theDate": "विवाह का दिन",
+      "venue": "स्थान",
+      "blessing": "बड़ों के आशीर्वाद से",
+      "invite": "आपकी उपस्थिति प्रार्थनीय है"
+    },
+    "en": {
+      "saveTheDate": "SAVE THE DATE",
+      "and": "AND",
+      "theDate": "THE WEDDING",
+      "venue": "VENUE",
+      "blessing": "With the blessings of our elders",
+      "invite": "We request the honour of your presence"
+    }
+  },
+  "voiceover": [
+    "saveTheDate",
+    "theDate",
+    "invite"
+  ],
+  "maxGenerativeShots": 2,
+  "shots": [
+    {
+      "id": "s01_sea",
+      "type": "generative",
+      "duration": 3.0,
+      "subject": "environment",
+      "prompt": "Cinematic wide shot of the Arabian Sea horizon at dawn off the Karnataka coast, soft pink and gold light, gentle waves, slow tilt up, anamorphic letterbox, no people",
+      "motion": "tilt_up",
+      "fallback": {
+        "type": "photo_motion",
+        "photo": 2,
+        "motion": "tilt_up"
+      }
+    },
+    {
+      "id": "s02_title",
+      "type": "title_card",
+      "duration": 2.5,
+      "scrim": 1,
+      "motion": "hold",
+      "lines": [
+        {
+          "key": "",
+          "stringKey": "saveTheDate",
+          "style": "title",
+          "align": "center",
+          "delay": 0.25
+        }
+      ],
+      "note": "Letterspacing animates 0.4em down to 0.1em."
+    },
+    {
+      "id": "s03_partnerA",
+      "type": "lower_third",
+      "duration": 3.5,
+      "photo": 0,
+      "motion": "push_in",
+      "lines": [
+        {
+          "key": "partnerA",
+          "style": "lower_third",
+          "align": "left",
+          "delay": 0.4
+        }
+      ]
+    },
+    {
+      "id": "s04_partnerB",
+      "type": "lower_third",
+      "duration": 3.5,
+      "photo": 1,
+      "motion": "push_in",
+      "lines": [
+        {
+          "key": "partnerB",
+          "style": "lower_third",
+          "align": "right",
+          "delay": 0.4
+        }
+      ]
+    },
+    {
+      "id": "s05_couple_wide",
+      "type": "photo_motion",
+      "duration": 3.5,
+      "photo": 2,
+      "motion": "push_out",
+      "zoom": [
+        1.14,
+        1.0
+      ],
+      "ease": "ease_out",
+      "anchor": "center",
+      "lines": []
+    },
+    {
+      "id": "s06_montage",
+      "type": "photo_montage",
+      "duration": 3.0,
+      "photos": [
+        3,
+        4,
+        5
+      ],
+      "per": 1.0,
+      "transition": "whip"
+    },
+    {
+      "id": "s07_couple_close",
+      "type": "photo_motion",
+      "duration": 3.0,
+      "photo": 6,
+      "motion": "drift_right",
+      "zoom": [
+        1.08,
+        1.08
+      ],
+      "ease": "linear",
+      "anchor": "center",
+      "lines": []
+    },
+    {
+      "id": "s08_coast",
+      "type": "generative",
+      "duration": 3.0,
+      "subject": "environment",
+      "prompt": "Cinematic lateral tracking shot past coconut palms toward a South Indian temple gopura at golden hour, warm haze, brass kalash catching light, no people",
+      "motion": "drift_left",
+      "fallback": {
+        "type": "photo_motion",
+        "photo": 5,
+        "motion": "drift_left"
+      }
+    },
+    {
+      "id": "s09_date",
+      "type": "title_card",
+      "duration": 4.0,
+      "scrim": 1,
+      "motion": "hold",
+      "lines": [
+        {
+          "key": "eventDate",
+          "style": "hero",
+          "align": "center",
+          "delay": 0.35
+        },
+        {
+          "key": "",
+          "stringKey": "theDate",
+          "style": "subtitle",
+          "align": "center",
+          "delay": 1.3
+        }
+      ]
+    },
+    {
+      "id": "s10_venue",
+      "type": "title_card",
+      "duration": 5.0,
+      "photo": 7,
+      "scrim": 0.7,
+      "motion": "push_in",
+      "lines": [
+        {
+          "key": "venue",
+          "style": "title",
+          "align": "center",
+          "delay": 0.2
+        },
+        {
+          "key": "hostedBy",
+          "style": "body",
+          "align": "center",
+          "delay": 0.8
+        },
+        {
+          "key": "",
+          "stringKey": "invite",
+          "style": "caption",
+          "align": "center",
+          "delay": 1.4
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,271 @@
+{
+  "id": "first-birthday-storybook",
+  "version": 1,
+  "occasion": "first_birthday",
+  "region": "Pan-India",
+  "name": {
+    "kn": "ಮೊದಲ ಹುಟ್ಟುಹಬ್ಬ — ಕಥೆಪುಸ್ತಕ",
+    "kok": "पयलो जल्मदीस — काणयेपुस्तक",
+    "hi": "पहला जन्मदिन — कहानी",
+    "en": "First Birthday — Storybook"
+  },
+  "blurb": {
+    "kn": "ಬೆಚ್ಚಗೆ, ಗಂಭೀರವಲ್ಲ. ತಮಾಷೆ ಎಂದರೆ ಇದನ್ನು ಬ್ಲಾಕ್‌ಬಸ್ಟರ್‌ನಂತೆ ಚಿತ್ರಿಸಿದ್ದು.",
+    "kok": "उब्दार, गंभीर न्हय. विनोद हो की हें ब्लॉकबस्टरा भाशेन काडलां.",
+    "hi": "गर्म, गंभीर नहीं। मज़ा यह है कि इसे ब्लॉकबस्टर की तरह शूट किया गया है।",
+    "en": "Warm, not solemn. The joke is that it is shot like a blockbuster."
+  },
+  "defaultScript": {
+    "kn": "kannada",
+    "kok": "devanagari",
+    "hi": "devanagari",
+    "en": "latin"
+  },
+  "photosRequired": {
+    "min": 6,
+    "max": 10
+  },
+  "music": "playful-strings",
+  "palette": {
+    "bg": "#1A1210",
+    "ink": "#FFF6EA",
+    "accent": "#FF7A5C",
+    "muted": "#63C7B2"
+  },
+  "typography": {
+    "hero": {
+      "kannada": "Noto Sans Kannada",
+      "devanagari": "Noto Sans Devanagari",
+      "latin": "Noto Sans"
+    },
+    "body": {
+      "kannada": "Noto Sans Kannada",
+      "devanagari": "Noto Sans Devanagari",
+      "latin": "Noto Sans"
+    },
+    "heroSize": 200,
+    "titleSize": 96,
+    "bodySize": 52
+  },
+  "fields": [
+    {
+      "key": "childName",
+      "labelKey": "field.childName",
+      "type": "text",
+      "required": true,
+      "maxLength": 40,
+      "script": "family"
+    },
+    {
+      "key": "parentsNames",
+      "labelKey": "field.parentsNames",
+      "type": "text",
+      "required": false,
+      "maxLength": 70,
+      "script": "family"
+    },
+    {
+      "key": "eventDate",
+      "labelKey": "field.eventDate",
+      "type": "date",
+      "required": true,
+      "maxLength": 30,
+      "script": "family"
+    },
+    {
+      "key": "eventTime",
+      "labelKey": "field.eventTime",
+      "type": "time",
+      "required": true,
+      "maxLength": 20,
+      "script": "family"
+    },
+    {
+      "key": "venue",
+      "labelKey": "field.venue",
+      "type": "textarea",
+      "required": true,
+      "maxLength": 90,
+      "script": "family"
+    }
+  ],
+  "strings": {
+    "kn": {
+      "oneYearAgo": "ಒಂದು ವರ್ಷದ ಹಿಂದೆ...",
+      "turningOne": "ಒಂದು ವರ್ಷ",
+      "date": "ದಿನಾಂಕ",
+      "time": "ಸಮಯ",
+      "venue": "ಸ್ಥಳ",
+      "invite": "ಬನ್ನಿ, ಜೊತೆಯಾಗಿ ಆಚರಿಸೋಣ"
+    },
+    "kok": {
+      "oneYearAgo": "एक वर्सा आदीं...",
+      "turningOne": "एक वर्स",
+      "date": "तारीख",
+      "time": "वेळ",
+      "venue": "सुवात",
+      "invite": "येयात, एकठांय मनयां"
+    },
+    "hi": {
+      "oneYearAgo": "एक साल पहले...",
+      "turningOne": "एक साल के",
+      "date": "दिनांक",
+      "time": "समय",
+      "venue": "स्थान",
+      "invite": "आइए, साथ मनाएँ"
+    },
+    "en": {
+      "oneYearAgo": "ONE YEAR AGO...",
+      "turningOne": "TURNING ONE",
+      "date": "DATE",
+      "time": "TIME",
+      "venue": "VENUE",
+      "invite": "Come celebrate with us"
+    }
+  },
+  "voiceover": [
+    "oneYearAgo",
+    "turningOne",
+    "invite"
+  ],
+  "maxGenerativeShots": 1,
+  "shots": [
+    {
+      "id": "s01_title",
+      "type": "title_card",
+      "duration": 2.5,
+      "scrim": 1,
+      "motion": "hold",
+      "lines": [
+        {
+          "key": "",
+          "stringKey": "oneYearAgo",
+          "style": "title",
+          "align": "center",
+          "delay": 0.2
+        }
+      ],
+      "note": "Typewriter reveal."
+    },
+    {
+      "id": "s02_newborn",
+      "type": "photo_motion",
+      "duration": 3.0,
+      "photo": 0,
+      "motion": "push_in",
+      "zoom": [
+        1.0,
+        1.14
+      ],
+      "ease": "ease_in_out",
+      "anchor": "center",
+      "lines": [],
+      "note": "Starts desaturated; colour ramps up across the shot."
+    },
+    {
+      "id": "s03_months",
+      "type": "photo_montage",
+      "duration": 4.0,
+      "photos": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "per": 1.0,
+      "transition": "whip"
+    },
+    {
+      "id": "s04_milestone",
+      "type": "photo_motion",
+      "duration": 3.0,
+      "photo": 5,
+      "motion": "push_out",
+      "zoom": [
+        1.12,
+        1.0
+      ],
+      "ease": "ease_out",
+      "anchor": "center",
+      "lines": []
+    },
+    {
+      "id": "s05_cake",
+      "type": "generative",
+      "duration": 3.0,
+      "subject": "object",
+      "prompt": "Cinematic slow orbit around a pastel first-birthday cake with a single candle, soft balloons and paper bunting out of focus behind, warm key light, shallow depth of field, no people",
+      "motion": "drift_right",
+      "fallback": {
+        "type": "photo_motion",
+        "photo": 6,
+        "motion": "drift_right"
+      }
+    },
+    {
+      "id": "s06_family",
+      "type": "photo_motion",
+      "duration": 3.0,
+      "photo": 6,
+      "motion": "drift_left",
+      "zoom": [
+        1.08,
+        1.08
+      ],
+      "ease": "linear",
+      "anchor": "center",
+      "lines": []
+    },
+    {
+      "id": "s07_reveal",
+      "type": "title_card",
+      "duration": 4.5,
+      "scrim": 1,
+      "motion": "hold",
+      "lines": [
+        {
+          "key": "childName",
+          "style": "hero",
+          "align": "center",
+          "delay": 0.3
+        },
+        {
+          "key": "",
+          "stringKey": "turningOne",
+          "style": "subtitle",
+          "align": "center",
+          "delay": 1.2
+        }
+      ],
+      "note": "Name pops with squash-and-stretch."
+    },
+    {
+      "id": "s08_details",
+      "type": "title_card",
+      "duration": 5.0,
+      "photo": 7,
+      "scrim": 0.68,
+      "motion": "push_in",
+      "lines": [
+        {
+          "key": "eventDate",
+          "style": "title",
+          "align": "center",
+          "delay": 0.2
+        },
+        {
+          "key": "eventTime",
+          "style": "body",
+          "align": "center",
+          "delay": 0.6
+        },
+        {
+          "key": "venue",
+          "style": "body",
+          "align": "center",
+          "delay": 1.0
+        }
+      ]
+    }
+  ]
+}

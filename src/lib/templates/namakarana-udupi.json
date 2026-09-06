@@ -1,0 +1,323 @@
+{
+  "id": "namakarana-udupi",
+  "version": 1,
+  "occasion": "namakarana",
+  "region": "Udupi / coastal Karnataka",
+  "name": {
+    "kn": "ನಾಮಕರಣ — ಸಾಂಪ್ರದಾಯಿಕ ಉಡುಪಿ",
+    "kok": "नामकरण — पारंपारीक उडुपी",
+    "hi": "नामकरण — पारंपरिक उडुपी",
+    "en": "The Naming — Traditional Udupi"
+  },
+  "blurb": {
+    "kn": "ಹೆಸರೇ ಕಥೆಯ ತಿರುವು. ಕೊನೆಯವರೆಗೂ ಕಾಯಿಸುತ್ತದೆ.",
+    "kok": "नांवूच कथेचो शेवट. निमाणे मेरेन राखता.",
+    "hi": "नाम ही कहानी का मोड़ है। अंत तक रोके रखता है।",
+    "en": "The name is the reveal. Everything before it holds back."
+  },
+  "defaultScript": {
+    "kn": "kannada",
+    "kok": "devanagari",
+    "hi": "devanagari",
+    "en": "latin"
+  },
+  "photosRequired": {
+    "min": 6,
+    "max": 10
+  },
+  "music": "temple-warm",
+  "palette": {
+    "bg": "#140507",
+    "ink": "#FBF3E4",
+    "accent": "#D4A017",
+    "muted": "#7B1E28"
+  },
+  "typography": {
+    "hero": {
+      "kannada": "Noto Serif Kannada",
+      "devanagari": "Noto Serif Devanagari",
+      "latin": "Noto Serif"
+    },
+    "body": {
+      "kannada": "Noto Sans Kannada",
+      "devanagari": "Noto Sans Devanagari",
+      "latin": "Noto Sans"
+    },
+    "heroSize": 196,
+    "titleSize": 104,
+    "bodySize": 54
+  },
+  "fields": [
+    {
+      "key": "babyName",
+      "labelKey": "field.babyName",
+      "type": "text",
+      "required": true,
+      "maxLength": 40,
+      "script": "family"
+    },
+    {
+      "key": "parentsNames",
+      "labelKey": "field.parentsNames",
+      "type": "text",
+      "required": true,
+      "maxLength": 70,
+      "script": "family"
+    },
+    {
+      "key": "grandparentsNames",
+      "labelKey": "field.grandparentsNames",
+      "type": "text",
+      "required": false,
+      "maxLength": 70,
+      "script": "family"
+    },
+    {
+      "key": "eventDate",
+      "labelKey": "field.eventDate",
+      "type": "date",
+      "required": true,
+      "maxLength": 30,
+      "script": "family"
+    },
+    {
+      "key": "eventTime",
+      "labelKey": "field.eventTime",
+      "type": "time",
+      "required": true,
+      "maxLength": 20,
+      "script": "family"
+    },
+    {
+      "key": "venue",
+      "labelKey": "field.venue",
+      "type": "textarea",
+      "required": true,
+      "maxLength": 90,
+      "script": "family"
+    }
+  ],
+  "strings": {
+    "kn": {
+      "opening": "ಒಂದು ಹೊಸ ಹೆಸರು",
+      "ceremony": "ನಾಮಕರಣ",
+      "parentsPrefix": "ಪ್ರೀತಿಯ ಮಗು",
+      "blessing": "ಹಿರಿಯರ ಆಶೀರ್ವಾದದೊಂದಿಗೆ",
+      "date": "ದಿನಾಂಕ",
+      "time": "ಸಮಯ",
+      "venue": "ಸ್ಥಳ",
+      "invite": "ತಾವು ಬರಬೇಕೆಂದು ಕೋರುತ್ತೇವೆ"
+    },
+    "kok": {
+      "opening": "एक नवें नांव",
+      "ceremony": "नामकरण",
+      "parentsPrefix": "मोगाळ भुरगें",
+      "blessing": "व्हडिलांच्या आशीर्वादान",
+      "date": "तारीख",
+      "time": "वेळ",
+      "venue": "सुवात",
+      "invite": "तुमी येवचें अशी विनंती"
+    },
+    "hi": {
+      "opening": "एक नया नाम",
+      "ceremony": "नामकरण",
+      "parentsPrefix": "प्यारा शिशु",
+      "blessing": "बड़ों के आशीर्वाद से",
+      "date": "दिनांक",
+      "time": "समय",
+      "venue": "स्थान",
+      "invite": "आपकी उपस्थिति प्रार्थनीय है"
+    },
+    "en": {
+      "opening": "A NEW NAME",
+      "ceremony": "NAMING CEREMONY",
+      "parentsPrefix": "Beloved child of",
+      "blessing": "With the blessings of our elders",
+      "date": "DATE",
+      "time": "TIME",
+      "venue": "VENUE",
+      "invite": "We request the honour of your presence"
+    }
+  },
+  "voiceover": [
+    "opening",
+    "parentsPrefix",
+    "ceremony",
+    "invite"
+  ],
+  "maxGenerativeShots": 2,
+  "shots": [
+    {
+      "id": "s01_open",
+      "type": "title_card",
+      "duration": 2.5,
+      "scrim": 1,
+      "motion": "hold",
+      "lines": [
+        {
+          "key": "",
+          "stringKey": "opening",
+          "style": "title",
+          "align": "center",
+          "delay": 0.3
+        }
+      ],
+      "note": "Black. A single struck bell. Letters fade up staggered 120ms apart."
+    },
+    {
+      "id": "s02_cradle",
+      "type": "generative",
+      "duration": 3.0,
+      "subject": "object",
+      "prompt": "Cinematic macro shot of a traditional South Indian wooden cradle draped in red silk with jasmine garlands, warm brass oil lamp glow, shallow depth of field, slow push in, no people",
+      "seedPhoto": 0,
+      "motion": "push_in",
+      "fallback": {
+        "type": "photo_motion",
+        "photo": 0,
+        "motion": "push_in"
+      },
+      "note": "Object only. No human likeness is ever generated."
+    },
+    {
+      "id": "s03_baby",
+      "type": "photo_motion",
+      "duration": 3.5,
+      "photo": 0,
+      "motion": "push_in",
+      "zoom": [
+        1.0,
+        1.12
+      ],
+      "ease": "ease_in_out",
+      "anchor": "center",
+      "lines": []
+    },
+    {
+      "id": "s04_hands",
+      "type": "photo_motion",
+      "duration": 3.0,
+      "photo": 1,
+      "motion": "drift_left",
+      "zoom": [
+        1.08,
+        1.08
+      ],
+      "ease": "linear",
+      "anchor": "center",
+      "lines": []
+    },
+    {
+      "id": "s05_parents",
+      "type": "lower_third",
+      "duration": 2.5,
+      "photo": 2,
+      "motion": "push_in",
+      "lines": [
+        {
+          "key": "",
+          "stringKey": "parentsPrefix",
+          "style": "caption",
+          "align": "left",
+          "delay": 0.1
+        },
+        {
+          "key": "parentsNames",
+          "style": "lower_third",
+          "align": "left",
+          "delay": 0.35
+        }
+      ]
+    },
+    {
+      "id": "s06_elders",
+      "type": "photo_motion",
+      "duration": 3.0,
+      "photo": 3,
+      "motion": "push_out",
+      "zoom": [
+        1.1,
+        1.0
+      ],
+      "ease": "ease_out",
+      "anchor": "center",
+      "lines": []
+    },
+    {
+      "id": "s07_ritual",
+      "type": "generative",
+      "duration": 3.0,
+      "subject": "object",
+      "prompt": "Cinematic close-up of a brass oil lamp, raw rice, turmeric and a silk cradle rope on a banana leaf, warm candlelight, slow rack focus, temple interior bokeh, no people",
+      "motion": "hold",
+      "fallback": {
+        "type": "photo_motion",
+        "photo": 4,
+        "motion": "push_in"
+      }
+    },
+    {
+      "id": "s08_montage",
+      "type": "photo_montage",
+      "duration": 3.0,
+      "photos": [
+        4,
+        5,
+        6
+      ],
+      "per": 1.0,
+      "transition": "cut"
+    },
+    {
+      "id": "s09_reveal",
+      "type": "title_card",
+      "duration": 4.5,
+      "scrim": 1,
+      "motion": "hold",
+      "lines": [
+        {
+          "key": "babyName",
+          "style": "hero",
+          "align": "center",
+          "delay": 0.4
+        },
+        {
+          "key": "",
+          "stringKey": "ceremony",
+          "style": "subtitle",
+          "align": "center",
+          "delay": 1.4
+        }
+      ],
+      "note": "The reveal. Name scales 0.92 to 1.0 with a 20% overshoot."
+    },
+    {
+      "id": "s10_details",
+      "type": "title_card",
+      "duration": 4.0,
+      "photo": 7,
+      "scrim": 0.72,
+      "motion": "push_in",
+      "lines": [
+        {
+          "key": "eventDate",
+          "style": "title",
+          "align": "center",
+          "delay": 0.2
+        },
+        {
+          "key": "eventTime",
+          "style": "body",
+          "align": "center",
+          "delay": 0.5
+        },
+        {
+          "key": "venue",
+          "style": "body",
+          "align": "center",
+          "delay": 0.8
+        }
+      ]
+    }
+  ]
+}

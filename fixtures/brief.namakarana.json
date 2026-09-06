@@ -1,0 +1,24 @@
+{
+  "templateId": "namakarana-udupi",
+  "templateVersion": 1,
+  "language": "kn",
+  "fields": {
+    "babyName": "ಆದ್ವಿಕ್",
+    "parentsNames": "ಶ್ರುತಿ ಮತ್ತು ರಾಘವೇಂದ್ರ",
+    "grandparentsNames": "ಸುಶೀಲಾ ಮತ್ತು ವೆಂಕಟರಮಣ",
+    "eventDate": "2026-10-18",
+    "eventTime": "ಬೆಳಗ್ಗೆ 9:30",
+    "venue": "ಶ್ರೀ ಕೃಷ್ಣ ಮಠ ಸಭಾಂಗಣ, ಕಾರ್ ಸ್ಟ್ರೀಟ್, ಉಡುಪಿ"
+  },
+  "photos": [
+    "fixtures/photos/01.jpg",
+    "fixtures/photos/02.jpg",
+    "fixtures/photos/03.jpg",
+    "fixtures/photos/04.jpg",
+    "fixtures/photos/05.jpg",
+    "fixtures/photos/06.jpg",
+    "fixtures/photos/07.jpg",
+    "fixtures/photos/08.jpg"
+  ],
+  "aspects": ["9:16"]
+}

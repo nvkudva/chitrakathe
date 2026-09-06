@@ -1,0 +1,272 @@
+{
+  "id": "griha-pravesha-classic",
+  "version": 1,
+  "occasion": "griha_pravesha",
+  "region": "Pan-India",
+  "name": {
+    "kn": "ಗೃಹ ಪ್ರವೇಶ — ಶಾಸ್ತ್ರೀಯ",
+    "kok": "गृह प्रवेश — पारंपारीक",
+    "hi": "गृह प्रवेश — शास्त्रीय",
+    "en": "Housewarming — Classic"
+  },
+  "blurb": {
+    "kn": "ಮನೆಯೇ ನಾಯಕ. ಮನೆಯ ಫೋಟೋಗಳು ಸಾಮಾನ್ಯವಾಗಿ ಸಪ್ಪೆ, ಹಾಗಾಗಿ ಅಕ್ಷರಗಳೇ ಭಾರ ಹೊರುತ್ತವೆ.",
+    "kok": "घरूच नायक. घराचीं फोटयां चडशीं बरीं येनात, देखून अक्षरांच वजें व्हरतात.",
+    "hi": "घर ही नायक है। घर की तस्वीरें अक्सर फीकी होती हैं, इसलिए अक्षर भार उठाते हैं।",
+    "en": "The house is the protagonist. Photos of houses are usually flat, so the typography carries it."
+  },
+  "defaultScript": {
+    "kn": "kannada",
+    "kok": "devanagari",
+    "hi": "devanagari",
+    "en": "latin"
+  },
+  "photosRequired": {
+    "min": 6,
+    "max": 10
+  },
+  "music": "nadaswaram-soft",
+  "palette": {
+    "bg": "#0F1410",
+    "ink": "#F6EFDD",
+    "accent": "#C9A227",
+    "muted": "#1E4033"
+  },
+  "typography": {
+    "hero": {
+      "kannada": "Noto Serif Kannada",
+      "devanagari": "Noto Serif Devanagari",
+      "latin": "Noto Serif"
+    },
+    "body": {
+      "kannada": "Noto Sans Kannada",
+      "devanagari": "Noto Sans Devanagari",
+      "latin": "Noto Sans"
+    },
+    "heroSize": 186,
+    "titleSize": 100,
+    "bodySize": 54
+  },
+  "fields": [
+    {
+      "key": "familyName",
+      "labelKey": "field.familyName",
+      "type": "text",
+      "required": true,
+      "maxLength": 50,
+      "script": "family"
+    },
+    {
+      "key": "eventDate",
+      "labelKey": "field.eventDate",
+      "type": "date",
+      "required": true,
+      "maxLength": 30,
+      "script": "family"
+    },
+    {
+      "key": "muhurtaTime",
+      "labelKey": "field.muhurtaTime",
+      "type": "time",
+      "required": true,
+      "maxLength": 30,
+      "script": "family"
+    },
+    {
+      "key": "address",
+      "labelKey": "field.address",
+      "type": "textarea",
+      "required": true,
+      "maxLength": 120,
+      "script": "family"
+    }
+  ],
+  "strings": {
+    "kn": {
+      "ceremony": "ಗೃಹ ಪ್ರವೇಶ",
+      "familySuffix": "ಅವರ ಕುಟುಂಬ",
+      "muhurta": "ಮುಹೂರ್ತ",
+      "date": "ದಿನಾಂಕ",
+      "venue": "ವಿಳಾಸ",
+      "invite": "ತಾವು ಬಂದು ಆಶೀರ್ವದಿಸಬೇಕು"
+    },
+    "kok": {
+      "ceremony": "गृह प्रवेश",
+      "familySuffix": "हांचें कुटुंब",
+      "muhurta": "मुहूर्त",
+      "date": "तारीख",
+      "venue": "नामो",
+      "invite": "तुमी येवन आशीर्वाद दिवचो"
+    },
+    "hi": {
+      "ceremony": "गृह प्रवेश",
+      "familySuffix": "का परिवार",
+      "muhurta": "मुहूर्त",
+      "date": "दिनांक",
+      "venue": "पता",
+      "invite": "पधारकर आशीर्वाद दें"
+    },
+    "en": {
+      "ceremony": "HOUSEWARMING",
+      "familySuffix": "family",
+      "muhurta": "MUHURTA",
+      "date": "DATE",
+      "venue": "ADDRESS",
+      "invite": "Please come and bless our new home"
+    }
+  },
+  "voiceover": [
+    "ceremony",
+    "muhurta",
+    "invite"
+  ],
+  "maxGenerativeShots": 2,
+  "shots": [
+    {
+      "id": "s01_lamp",
+      "type": "generative",
+      "duration": 2.5,
+      "subject": "object",
+      "prompt": "Cinematic macro shot of a brass oil lamp wick catching flame in near darkness, warm amber light blooming outward, deep black background, no people",
+      "motion": "hold",
+      "fallback": {
+        "type": "photo_motion",
+        "photo": 1,
+        "motion": "push_in"
+      }
+    },
+    {
+      "id": "s02_title",
+      "type": "title_card",
+      "duration": 2.5,
+      "scrim": 1,
+      "motion": "hold",
+      "lines": [
+        {
+          "key": "",
+          "stringKey": "ceremony",
+          "style": "title",
+          "align": "center",
+          "delay": 0.25
+        }
+      ],
+      "note": "Fade with a warm glow bloom carried over from the lamp."
+    },
+    {
+      "id": "s03_exterior",
+      "type": "photo_motion",
+      "duration": 3.5,
+      "photo": 0,
+      "motion": "tilt_up",
+      "zoom": [
+        1.12,
+        1.12
+      ],
+      "ease": "ease_in_out",
+      "anchor": "bottom",
+      "lines": []
+    },
+    {
+      "id": "s04_threshold",
+      "type": "photo_motion",
+      "duration": 3.0,
+      "photo": 1,
+      "motion": "push_in",
+      "zoom": [
+        1.0,
+        1.1
+      ],
+      "ease": "ease_in_out",
+      "anchor": "center",
+      "lines": []
+    },
+    {
+      "id": "s05_interiors",
+      "type": "photo_montage",
+      "duration": 3.0,
+      "photos": [
+        2,
+        3
+      ],
+      "per": 1.5,
+      "transition": "dissolve"
+    },
+    {
+      "id": "s06_family",
+      "type": "photo_motion",
+      "duration": 3.5,
+      "photo": 4,
+      "motion": "push_out",
+      "zoom": [
+        1.12,
+        1.0
+      ],
+      "ease": "ease_out",
+      "anchor": "center",
+      "lines": []
+    },
+    {
+      "id": "s07_kalash",
+      "type": "generative",
+      "duration": 3.0,
+      "subject": "object",
+      "prompt": "Cinematic slow rotate around a brass kalash topped with mango leaves and a coconut, resting on a fresh rangoli of coloured powder, marigold petals, warm morning light, no people",
+      "motion": "drift_right",
+      "fallback": {
+        "type": "photo_motion",
+        "photo": 3,
+        "motion": "drift_right"
+      }
+    },
+    {
+      "id": "s08_family_name",
+      "type": "title_card",
+      "duration": 4.0,
+      "scrim": 1,
+      "motion": "hold",
+      "lines": [
+        {
+          "key": "familyName",
+          "style": "hero",
+          "align": "center",
+          "delay": 0.35
+        },
+        {
+          "key": "",
+          "stringKey": "familySuffix",
+          "style": "subtitle",
+          "align": "center",
+          "delay": 1.2
+        }
+      ]
+    },
+    {
+      "id": "s09_details",
+      "type": "title_card",
+      "duration": 5.0,
+      "photo": 5,
+      "scrim": 0.72,
+      "motion": "push_in",
+      "lines": [
+        {
+          "key": "eventDate",
+          "style": "title",
+          "align": "center",
+          "delay": 0.2
+        },
+        {
+          "key": "muhurtaTime",
+          "style": "body",
+          "align": "center",
+          "delay": 0.6
+        },
+        {
+          "key": "address",
+          "style": "body",
+          "align": "center",
+          "delay": 1.0
+        }
+      ]
+    }
+  ]
+}

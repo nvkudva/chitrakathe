@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #FBF3E4;
+  --color-bg: #120508;
+  --color-accent: #D4A017;
+  --color-muted: #7B1E28;
+  --font-display: "Noto Serif", Georgia, serif;
+}
+
+html, body { background: var(--color-bg); color: var(--color-ink); }
+body { font-family: "Noto Sans", system-ui, sans-serif; }
