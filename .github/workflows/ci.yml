@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Indic shaping is a correctness requirement, so the fonts are a build
+      # dependency, not a nicety. Without them the language check renders tofu.
+      - name: Install ffmpeg and Noto fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-noto-core
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Deliberately unset NODE_ENV: pinning it breaks the prerender.
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/chitrakathe
+          SIGNING_SECRET: ci-signing-secret
+
+  languages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install ffmpeg and Noto fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-noto-core
+      - run: npm ci
+      - name: Install Chromium for title cards
+        run: npx playwright-core install chromium --with-deps || npx playwright install chromium --with-deps
+      - name: Render every template in every language
+        run: npx tsx scripts/check-languages.ts
+        env:
+          SIGNING_SECRET: ci-signing-secret
+          CHROMIUM_PATH: ""
+      # Shaping cannot be asserted mechanically. Publish the sheets so a human
+      # can look at them on any PR that touches templates or typography.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: language-contact-sheets
+          path: var/language-check/contact-sheet.*.png

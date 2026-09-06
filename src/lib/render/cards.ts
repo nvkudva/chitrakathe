@@ -29,8 +29,11 @@ let browser: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
   if (!browser) {
+    // An empty CHROMIUM_PATH means "let Playwright find its own browser",
+    // which is what CI and a plain `npx playwright install` want.
+    const executablePath = config().CHROMIUM_PATH || undefined;
     browser = await chromium.launch({
-      executablePath: config().CHROMIUM_PATH,
+      executablePath,
       args: ["--no-sandbox", "--font-render-hinting=none", "--disable-lcd-text"],
     });
   }
@@ -50,7 +53,39 @@ export type CardSpec = {
   seconds: number;
   /** Transparent PNGs for overlaying on a photo, or opaque on the palette. */
   transparent: boolean;
+  /**
+   * Where the block sits. Comes from the shot type, never from which styles
+   * happen to appear: a title card that includes a caption is still a title
+   * card, and must not slide to the bottom of the frame.
+   */
+  anchor?: "center" | "bottom";
 };
+
+/**
+ * Renders a single frame of a card at `atSeconds`, for checks and thumbnails.
+ * Rendering the whole sequence to look at one frame is 100x the work.
+ */
+export async function renderCardStill(spec: CardSpec, outFile: string, atSeconds?: number): Promise<void> {
+  const size = SIZES[spec.aspect];
+  const t = atSeconds ?? animatedSeconds(spec);
+  const page = await (await getBrowser()).newPage({
+    viewport: { width: size.w, height: size.h },
+    deviceScaleFactor: 1,
+  });
+  try {
+    await page.setContent(cardHtml(spec, size), { waitUntil: "load" });
+    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate((ms) => {
+      for (const a of document.getAnimations()) {
+        a.pause();
+        a.currentTime = ms;
+      }
+    }, t * 1000);
+    await page.screenshot({ path: outFile, omitBackground: spec.transparent, type: "png" });
+  } finally {
+    await page.close();
+  }
+}
 
 export type CardFrames = {
   /** Frames actually written, as %05d.png. */
@@ -123,20 +158,25 @@ function cardHtml(spec: CardSpec, size: { w: number; h: number }): string {
   const body = t.typography.body[script] ?? "Noto Sans";
   const scale = size.h / 1920; // storyboard sizes are authored against 1080x1920
 
+  // Indic scripts are shaped as connected clusters; adding tracking splits a
+  // word into loose glyphs (ನಾ ಮ ಕ ರ ಣ instead of ನಾಮಕರಣ). Latin keeps its tracking.
+  const isLatin = script === "latin";
+  const track = (latin: string) => (isLatin ? latin : "0");
+
   const styleFor = (s: TextSlot["style"]) => {
     switch (s) {
       case "hero":
         return { family: hero, size: t.typography.heroSize, weight: 700, ls: "-0.01em", color: pal.ink };
       case "title":
-        return { family: hero, size: t.typography.titleSize, weight: 600, ls: "0.10em", color: pal.ink };
+        return { family: hero, size: t.typography.titleSize, weight: 600, ls: track("0.10em"), color: pal.ink };
       case "subtitle":
-        return { family: body, size: Math.round(t.typography.bodySize * 1.15), weight: 500, ls: "0.22em", color: pal.accent };
+        return { family: body, size: Math.round(t.typography.bodySize * 1.15), weight: 500, ls: track("0.22em"), color: pal.accent };
       case "lower_third":
         return { family: hero, size: Math.round(t.typography.titleSize * 0.8), weight: 600, ls: "0", color: pal.ink };
       case "caption":
-        return { family: body, size: Math.round(t.typography.bodySize * 0.72), weight: 400, ls: "0.18em", color: pal.accent };
+        return { family: body, size: Math.round(t.typography.bodySize * 0.88), weight: 400, ls: track("0.18em"), color: pal.accent };
       default:
-        return { family: body, size: t.typography.bodySize, weight: 400, ls: "0.02em", color: pal.ink };
+        return { family: body, size: t.typography.bodySize, weight: 400, ls: track("0.02em"), color: pal.ink };
     }
   };
 
@@ -158,16 +198,16 @@ function cardHtml(spec: CardSpec, size: { w: number; h: number }): string {
     })
     .join("\n");
 
-  const isLowerThird = spec.lines.some((l) => l.slot.style === "lower_third" || l.slot.style === "caption");
+  const bottomAnchored = spec.anchor === "bottom";
 
   return `<!doctype html><meta charset="utf-8"><style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{width:${size.w}px;height:${size.h}px;background:${spec.transparent ? "transparent" : pal.bg};overflow:hidden}
   .stage{
     width:100%;height:100%;display:flex;flex-direction:column;
-    justify-content:${isLowerThird ? "flex-end" : "center"};
+    justify-content:${bottomAnchored ? "flex-end" : "center"};
     gap:${Math.round(28 * scale)}px;
-    padding:${Math.round(96 * scale)}px ${Math.round(88 * scale)}px ${Math.round(isLowerThird ? 180 : 96) * scale}px;
+    padding:${Math.round(96 * scale)}px ${Math.round(88 * scale)}px ${Math.round((bottomAnchored ? 180 : 96) * scale)}px;
     ${spec.transparent ? "" : `background:radial-gradient(120% 70% at 50% 45%, ${pal.muted}22 0%, ${pal.bg} 70%);`}
   }
   .line{
@@ -178,7 +218,7 @@ function cardHtml(spec: CardSpec, size: { w: number; h: number }): string {
     overflow-wrap:break-word;text-wrap:balance;
   }
   @keyframes lineIn{from{opacity:0;transform:translateY(${Math.round(34 * scale)}px)}to{opacity:1;transform:none}}
-  @keyframes titleIn{from{opacity:0;letter-spacing:.42em}to{opacity:1;letter-spacing:.10em}}
+  @keyframes titleIn{from{opacity:0;letter-spacing:${isLatin ? ".42em" : "0"}}to{opacity:1;letter-spacing:${isLatin ? ".10em" : "0"}}}
   /* The reveal: scale up past 1.0 and settle. See prd.md 6.1 shot 9. */
   @keyframes heroIn{
     0%{opacity:0;transform:scale(.92)}

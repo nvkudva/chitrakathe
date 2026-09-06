@@ -269,6 +269,7 @@ async function cardShot(ctx: ShotCtx) {
       aspect: ctx.aspect,
       seconds: shot.duration,
       transparent: hasPhoto,
+      anchor: shot.type === "lower_third" ? "bottom" : "center",
     },
     framesDir
   );

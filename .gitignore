@@ -12,3 +12,4 @@ storage/
 # Generated development stand-ins — run `npx tsx scripts/make-fixtures.ts`
 fixtures/photos/
 assets/music/*.m4a
+var/
