@@ -57,3 +57,19 @@ to `var/language-check/`.
 - Storage keys are built by `keys.*` in `src/lib/storage/index.ts`; the
   retention job depends on those prefixes.
 - Migrations are plain SQL applied in order. No ORM, no codegen step.
+
+## Before you touch the render pipeline
+
+```bash
+npx tsx scripts/check-cost-once.ts
+```
+
+It renders a real brief at both aspects with a counting provider and asserts
+the model was called **once per generative shot**, not once per aspect. That bug
+shipped once: generation sat inside the per-aspect loop, so a two-shot template
+exported at 9:16 and 1:1 paid four times, hit the ceiling, and silently shipped
+a degraded square — and it made the gross margin published in README.md wrong.
+The `genCache` in `pipeline.ts` is the only thing preventing it.
+
+It needs ffmpeg and Chromium and takes a few minutes, which is why it is not in
+`npm test`.
