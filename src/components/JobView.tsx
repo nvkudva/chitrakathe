@@ -14,6 +14,7 @@ type Job = {
   error: string | null;
   degraded: string[];
   unlocked: boolean;
+  watchable: boolean;
   signedIn: boolean;
   owned: boolean;
   outputs: { aspect: string; previewUrl: string; posterUrl: string | null }[];
@@ -86,7 +87,9 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
     );
   }
 
-  if (job.status !== "succeeded") {
+  // The portrait master lands well before the job is marked succeeded. Showing
+  // it the moment it exists removes roughly half the perceived wait.
+  if (job.status !== "succeeded" && !job.watchable) {
     const pct = Math.max(4, job.progress);
     return (
       <div className="glass tier-2 space-y-4 p-6">
@@ -110,6 +113,7 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
   }
 
   const portrait = job.outputs.find((o) => o.aspect === "9:16") ?? job.outputs[0];
+  const stillWorking = job.status !== "succeeded";
 
   async function pay() {
     setPaying(true);
@@ -152,7 +156,7 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <div className="space-y-6">
-        <h1 className="t-title-1 ink-1">{tr(lang, "job.done")}</h1>
+        <h1 className="t-title-1 ink-1">{tr(lang, stillWorking ? "job.almost" : "job.done")}</h1>
 
         {portrait && (
           <div className="glass tier-2 mx-auto w-full max-w-sm overflow-hidden p-2">
@@ -165,6 +169,10 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
               className="w-full rounded-2xl"
             />
           </div>
+        )}
+
+        {stillWorking && (
+          <p className="glass tier-0 t-footnote ink-2 p-3 text-center">{tr(lang, "job.squarePending")}</p>
         )}
 
         {!job.unlocked ? (

@@ -23,7 +23,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   return NextResponse.json({
     id: job.id,
     eventId: job.event_id,
+    // A job with a finished portrait is watchable even while the square is
+    // still rendering, so the client is told to switch screens early.
     status: job.status,
+    watchable: outputs.length > 0,
     stage: job.stage,
     progress: job.progress,
     error: job.status === "failed" ? "Render failed" : job.error,

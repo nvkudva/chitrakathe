@@ -102,7 +102,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
         templateId: template.id,
         language: lang,
         fields,
-        aspects: ["9:16"],
+        aspects: ["9:16", "1:1"],
         email: contact.email || undefined,
         phone: contact.phone || undefined,
       });

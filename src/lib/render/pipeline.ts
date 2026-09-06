@@ -20,6 +20,12 @@ export type RenderOptions = {
   ledger: CostLedger;
   loadPhoto: PhotoSource;
   onProgress?: (stage: string, pct: number) => void | Promise<void>;
+  /**
+   * Called the moment one aspect is finished, before the next one starts.
+   * The portrait master exists minutes before the job is marked succeeded, and
+   * that is roughly half the perceived wait.
+   */
+  onAspectReady?: (out: RenderedAspect) => void | Promise<void>;
   /** Music bed file. Missing means silence under the voiceover. */
   musicDir?: string;
 };
@@ -122,7 +128,11 @@ export async function renderBrief(opts: RenderOptions): Promise<RenderResult> {
         await ffmpeg(["-ss", "1.2", "-i", master, "-frames:v", "1", "-q:v", "3", "-y", poster]);
 
         const bytes = (await fs.stat(master)).size + (await fs.stat(preview)).size;
-        outputs.push({ aspect, masterPath: master, previewPath: preview, posterPath: poster, bytes });
+        // Copy out before announcing: the temp dir is swept on the way out, and
+        // a consumer must never be handed a path that is about to vanish.
+        const ready = await publish(opts.jobId, { aspect, masterPath: master, previewPath: preview, posterPath: poster, bytes });
+        outputs.push(ready);
+        await opts.onAspectReady?.(ready);
       }
 
       // 6. Charge for what the job actually consumed.
@@ -133,23 +143,9 @@ export async function renderBrief(opts: RenderOptions): Promise<RenderResult> {
 
       await progress("derive", 100);
 
-      // Copy out of the temp dir before it is swept.
-      const outDir = path.join(config().STORAGE_LOCAL_DIR, "renders", opts.jobId);
-      await fs.mkdir(outDir, { recursive: true });
-      const finals: RenderedAspect[] = [];
-      for (const o of outputs) {
-        const m = path.join(outDir, path.basename(o.masterPath));
-        const p = path.join(outDir, path.basename(o.previewPath));
-        const q = path.join(outDir, path.basename(o.posterPath));
-        await fs.copyFile(o.masterPath, m);
-        await fs.copyFile(o.previewPath, p);
-        await fs.copyFile(o.posterPath, q);
-        finals.push({ ...o, masterPath: m, previewPath: p, posterPath: q });
-      }
-
       return {
-        outputs: finals,
-        durationSeconds: await durationOf(finals[0]!.masterPath),
+        outputs,
+        durationSeconds: await durationOf(outputs[0]!.masterPath),
         degraded,
         cost: ledger.summary(),
       };
@@ -157,6 +153,23 @@ export async function renderBrief(opts: RenderOptions): Promise<RenderResult> {
       await closeBrowser();
     }
   });
+}
+
+/** Moves one finished aspect out of the temp dir so it outlives the job. */
+async function publish(jobId: string, o: RenderedAspect): Promise<RenderedAspect> {
+  const outDir = path.join(config().STORAGE_LOCAL_DIR, "renders", jobId);
+  await fs.mkdir(outDir, { recursive: true });
+  const at = async (src: string) => {
+    const dst = path.join(outDir, path.basename(src));
+    await fs.copyFile(src, dst);
+    return dst;
+  };
+  return {
+    ...o,
+    masterPath: await at(o.masterPath),
+    previewPath: await at(o.previewPath),
+    posterPath: await at(o.posterPath),
+  };
 }
 
 function photoIndices(t: Template): number[] {

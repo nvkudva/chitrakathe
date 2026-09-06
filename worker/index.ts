@@ -33,6 +33,22 @@ async function handleRender(payload: RenderPayload) {
   const ledger = new CostLedger(jobId, repo.recordCost, job.ceiling_paise);
 
   try {
+    /**
+     * Upload and record each aspect the moment it is ready, not after the whole
+     * job. The portrait master finishes minutes before the square does, and the
+     * wait screen can become the preview screen as soon as it lands.
+     */
+    const store_ = store;
+    const publishAspect = async (out: { aspect: string; masterPath: string; previewPath: string; posterPath: string; bytes: number }) => {
+      const masterKey = keys.master(jobId, out.aspect);
+      const previewKey = keys.preview(jobId, out.aspect);
+      const posterKey = keys.poster(jobId, out.aspect);
+      await store_.put(masterKey, await fs.readFile(out.masterPath), "video/mp4");
+      await store_.put(previewKey, await fs.readFile(out.previewPath), "video/mp4");
+      await store_.put(posterKey, await fs.readFile(out.posterPath), "image/jpeg");
+      await repo.addOutput(jobId, { aspect: out.aspect, masterKey, previewKey, posterKey, bytes: out.bytes });
+    };
+
     const result = await renderBrief({
       jobId,
       brief,
@@ -40,17 +56,8 @@ async function handleRender(payload: RenderPayload) {
       musicDir: MUSIC_DIR,
       loadPhoto: (key) => store.get(key),
       onProgress: (stage, pct) => repo.setProgress(jobId, stage, pct),
+      onAspectReady: publishAspect,
     });
-
-    for (const out of result.outputs) {
-      const masterKey = keys.master(jobId, out.aspect);
-      const previewKey = keys.preview(jobId, out.aspect);
-      const posterKey = keys.poster(jobId, out.aspect);
-      await store.put(masterKey, await fs.readFile(out.masterPath), "video/mp4");
-      await store.put(previewKey, await fs.readFile(out.previewPath), "video/mp4");
-      await store.put(posterKey, await fs.readFile(out.posterPath), "image/jpeg");
-      await repo.addOutput(jobId, { aspect: out.aspect, masterKey, previewKey, posterKey, bytes: out.bytes });
-    }
 
     for (const shotId of result.degraded) {
       await repo.recordBreach(jobId, {
