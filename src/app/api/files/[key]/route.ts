@@ -32,12 +32,15 @@ export async function GET(req: Request, ctx: { params: Promise<{ key: string }> 
     return NextResponse.json({ error: "Expired or invalid link" }, { status: 403 });
   }
   const file = await fs.readFile(resolveKey(decoded));
-  return new NextResponse(new Uint8Array(file), {
-    headers: {
-      "content-type": TYPES[path.extname(decoded)] ?? "application/octet-stream",
-      "cache-control": "private, max-age=300",
-    },
-  });
+  // `dl` is outside the signature on purpose: it only names the saved file and
+  // cannot widen access to anything the signature does not already allow.
+  const dl = url.searchParams.get("dl");
+  const headers: Record<string, string> = {
+    "content-type": TYPES[path.extname(decoded)] ?? "application/octet-stream",
+    "cache-control": "private, max-age=300",
+  };
+  if (dl) headers["content-disposition"] = `attachment; filename="${dl.replace(/[^\w.\-]/g, "_")}"`;
+  return new NextResponse(new Uint8Array(file), { headers });
 }
 
 export async function PUT(req: Request, ctx: { params: Promise<{ key: string }> }) {

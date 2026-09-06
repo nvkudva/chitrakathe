@@ -36,8 +36,8 @@ export default async function CreatePage({
         <h1 className="t-title-1 ink-1">{template.name[lang]}</h1>
         <p className="t-body ink-2 max-w-[44ch]">{template.blurb[lang]}</p>
         <p className="t-caption ink-4">
-          {totalDuration(template)}s · {template.photosRequired.min}–{template.photosRequired.max}{" "}
-          {t(lang, "form.photos").toLowerCase()}
+          {totalDuration(template)}s ·{" "}
+          {t(lang, "form.photoCount").replace("{n}", String(template.photoSlots.length))}
         </p>
       </header>
 

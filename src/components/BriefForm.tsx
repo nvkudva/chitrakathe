@@ -291,7 +291,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
             </div>
           ) : (
             <button type="button" onClick={() => setShowEmail(true)} className="t-footnote ink-3 underline focus-ring rounded">
-              or send it by email instead
+              {tr(lang, "form.emailInstead")}
             </button>
           )}
         </section>
@@ -310,7 +310,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
         {signedIn === false && (
           <p className="flex items-center justify-center gap-2 t-footnote ink-3">
             <GoogleMark size={14} />
-            You&apos;ll sign in with Google before we start — it keeps your trailer if this page closes.
+            {tr(lang, "form.signInNote")}
           </p>
         )}
         <p className="text-center t-footnote ink-4">

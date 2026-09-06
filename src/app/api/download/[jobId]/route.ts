@@ -35,6 +35,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ jobId: string }
   const out = outputs.find((o) => o.aspect === aspect);
   if (!out) return NextResponse.json({ error: `No ${aspect} output` }, { status: 404 });
 
-  const url = await storage().signedDownload(out.master_key as string, 900);
+  const safeAspect = aspect.replace(":", "x");
+  const url = await storage().signedDownload(
+    out.master_key as string,
+    900,
+    `chitrakathe-${safeAspect}.mp4`
+  );
   return NextResponse.redirect(url, 302);
 }
