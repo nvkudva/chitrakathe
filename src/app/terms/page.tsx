@@ -1,12 +1,15 @@
 import { MERCHANT } from "@/lib/legal";
+import { isLanguage } from "@/lib/i18n/ui";
 import { config } from "@/lib/config";
 import { rupees } from "@/lib/money";
 
-export default function Terms() {
+export default async function Terms({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
   const price = rupees(config().PRICE_LAUNCH_PAISE);
   const rerender = rupees(config().PRICE_RERENDER_PAISE);
+  const { lang: raw } = await searchParams;
+  const lang = isLanguage(raw) ? raw : "en";
   return (
-    <article className="glass glass-rel tier-2 max-w-2xl space-y-5 p-6 rise">
+    <article lang={lang} className="glass glass-rel tier-2 max-w-2xl space-y-5 p-6 rise">
       <h1 className="t-title-1 ink-1">Terms of service</h1>
       <p className="t-body ink-2">
         These terms cover {MERCHANT.tradingName}, operated by {MERCHANT.legalName}, {MERCHANT.address}.

@@ -223,7 +223,14 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
                   required={f.required}
                   value={fields[f.key] ?? ""}
                   onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })}
-                  className="field" style={{ minHeight: 84, resize: "vertical", maxHeight: "40vh" }}
+                  className="field"
+                  style={{ minHeight: 84, resize: "vertical", maxHeight: "40vh", overflow: "hidden" }}
+                  ref={(el) => {
+                    if (el) {
+                      el.style.height = "auto";
+                      el.style.height = `${Math.max(84, el.scrollHeight)}px`;
+                    }
+                  }}
                 />
               ) : (
                 <input
@@ -276,7 +283,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={slot.url} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <span className="t-title-3 ink-4">{i + 1}</span>
+                      <span className="t-title-3 ink-3">{i + 1}</span>
                     )}
                   </span>
                   <span className="min-w-0 flex-1">
@@ -304,6 +311,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
               type="tel"
               inputMode="tel"
               autoComplete="tel"
+              aria-label={tr(lang, "form.phone")}
               placeholder={tr(lang, "form.phone")}
               value={contact.phone}
               onChange={(e) => setContact({ ...contact, phone: e.target.value })}
@@ -315,6 +323,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
               <input
                 type="email"
                 autoComplete="email"
+                aria-label={tr(lang, "form.email")}
                 placeholder={tr(lang, "form.email")}
                 value={contact.email}
                 onChange={(e) => setContact({ ...contact, email: e.target.value })}

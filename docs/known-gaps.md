@@ -44,3 +44,16 @@ published legal name, address, phone, email, terms, refunds and privacy policy; 
 being asked for ₹499 by a website with no name behind it will not pay. Replace every field in
 `MERCHANT` before going live. `isPlaceholder()` is exported so a launch check can assert none
 of them still start with `[`.
+
+## Legal pages are English, with translated summaries
+
+`/privacy` and `/refunds` show a plain-language summary in the reader's language
+above the operative English text, and say which version governs. `/terms` and
+`/contact` are English only.
+
+This is deliberate. A machine-translated refund clause that says something
+slightly different from the one we would actually defend is worse than an honest
+English one, and Konkani in particular has no settled legal register. Before
+launch, have all four reviewed and translated by someone who can be held to
+them — the summaries are written to be true to the English, but they are not a
+substitute for it.

@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { currentSession } from "@/lib/auth/session";
 import { isConfigured } from "@/lib/auth/google";
+import { Suspense } from "react";
 import AccountChip from "@/components/AccountChip";
+import SiteFooter from "@/components/SiteFooter";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -67,27 +69,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
           <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8">{children}</main>
 
-          <footer
-            className="mx-auto w-full max-w-5xl px-5 py-10 t-footnote ink-3"
-            style={{ paddingBottom: "calc(2.5rem + env(safe-area-inset-bottom))" }}
-          >
-            <p className="mb-3">
-              Uploaded photos are deleted 30 days after upload. Rendered videos are kept 90 days.
-            </p>
-            <nav className="flex flex-wrap gap-x-4 gap-y-1">
-              {[
-                ["/privacy", "Privacy"],
-                ["/terms", "Terms"],
-                ["/refunds", "Refunds"],
-                ["/contact", "Contact"],
-              ].map(([href, label]) => (
-                <a key={href} href={href} className="underline focus-ring rounded inline-flex items-center"
-                  style={{ minHeight: 44 }}>
-                  {label}
-                </a>
-              ))}
-            </nav>
-          </footer>
+          <Suspense>
+            <SiteFooter />
+          </Suspense>
         </div>
       </body>
     </html>

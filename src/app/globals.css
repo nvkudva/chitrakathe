@@ -381,7 +381,7 @@ html[data-glass="off"] .tier-3 { background: color-mix(in oklab, var(--color-sce
   outline: none;
   background: transparent;
 }
-.field::placeholder { color: var(--ink-4); }
+.field::placeholder { color: var(--ink-3); }
 
 .focus-ring:focus-visible,
 .field:focus-visible {

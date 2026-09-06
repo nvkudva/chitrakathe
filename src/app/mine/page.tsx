@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { currentSession } from "@/lib/auth/session";
 import { sql } from "@/lib/db";
 import { getTemplate } from "@/lib/templates";
+import { t, isLanguage } from "@/lib/i18n/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -10,15 +11,17 @@ export const dynamic = "force-dynamic";
  * The answer to "I closed the tab". A render costs us money whether or not the
  * family ever comes back, so every one of them needs a way back.
  */
-export default async function MyTrailers() {
+export default async function MyTrailers({ searchParams }: { searchParams: Promise<{ lang?: string }> }) {
+  const { lang: raw } = await searchParams;
+  const lang = isLanguage(raw) ? raw : "en";
   const session = await currentSession();
   if (!session) {
     return (
-      <div className="glass glass-rel tier-2 space-y-4 p-6 rise">
-        <h1 className="t-title-2 ink-1">Your trailers</h1>
-        <p className="t-body ink-2">Sign in to see the trailers you have made.</p>
+      <div lang={lang} className="glass glass-rel tier-2 space-y-4 p-6 rise">
+        <h1 className="t-title-2 ink-1">{t(lang, "mine.title")}</h1>
+        <p className="t-body ink-2">{t(lang, "mine.signedOut")}</p>
         <a href="/api/auth/signin?returnTo=/mine" className="btn btn-primary press focus-ring inline-flex">
-          Sign in with Google
+          {t(lang, "mine.signIn")}
         </a>
       </div>
     );
@@ -31,13 +34,13 @@ export default async function MyTrailers() {
     order by j.queued_at desc limit 50`;
 
   return (
-    <div className="space-y-5 rise">
-      <h1 className="t-title-1 ink-1">Your trailers</h1>
+    <div lang={lang} className="space-y-5 rise">
+      <h1 className="t-title-1 ink-1">{t(lang, "mine.title")}</h1>
       {rows.length === 0 && (
         <div className="glass glass-rel tier-2 space-y-3 p-6">
-          <p className="t-body ink-2">You haven&apos;t made one yet.</p>
+          <p className="t-body ink-2">{t(lang, "mine.empty")}</p>
           <Link href="/" className="btn btn-primary press focus-ring inline-flex">
-            Pick a template
+            {t(lang, "mine.pick")}
           </Link>
         </div>
       )}

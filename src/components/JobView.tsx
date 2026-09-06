@@ -94,10 +94,11 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
   }
 
   if (job.status === "refused_over_ceiling" || job.status === "failed") {
+    const refused = job.status === "refused_over_ceiling";
     return (
       <div className="glass glass-rel tier-3 space-y-3 p-6">
-        <h1 className="t-title-2 ink-1">{tr(lang, "job.failed")}</h1>
-        <p className="t-body ink-2">{tr(lang, "job.failedBody")}</p>
+        <h1 className="t-title-2 ink-1">{tr(lang, refused ? "job.refused" : "job.failed")}</h1>
+        <p className="t-body ink-2">{tr(lang, refused ? "job.refusedBody" : "job.failedBody")}</p>
       </div>
     );
   }
