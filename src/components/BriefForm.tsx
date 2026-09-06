@@ -6,6 +6,7 @@ import { LANGUAGE_NAMES, t as tr } from "@/lib/i18n/ui";
 import type { Language } from "@/lib/templates/schema";
 
 type Props = {
+  initialLang?: Language;
   template: {
     id: string;
     fields: { key: string; labelKey: string; type: string; required: boolean; maxLength: number }[];
@@ -14,9 +15,9 @@ type Props = {
   };
 };
 
-export default function BriefForm({ template }: Props) {
+export default function BriefForm({ template, initialLang = "en" }: Props) {
   const router = useRouter();
-  const [lang, setLang] = useState<Language>("kn");
+  const [lang, setLang] = useState<Language>(initialLang);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<File[]>([]);
   const [contact, setContact] = useState({ email: "", phone: "" });
@@ -142,14 +143,14 @@ export default function BriefForm({ template }: Props) {
       <div className="grid gap-3 sm:grid-cols-2">
         <input
           type="email"
-          placeholder="Email for delivery"
+          placeholder={tr(lang, "form.email")}
           value={contact.email}
           onChange={(e) => setContact({ ...contact, email: e.target.value })}
           className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 outline-none focus:border-[var(--color-accent)]"
         />
         <input
           type="tel"
-          placeholder="WhatsApp number"
+          placeholder={tr(lang, "form.phone")}
           value={contact.phone}
           onChange={(e) => setContact({ ...contact, phone: e.target.value })}
           className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 outline-none focus:border-[var(--color-accent)]"

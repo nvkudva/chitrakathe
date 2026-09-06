@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en-IN">
       <body className="min-h-screen antialiased">
         <header className="border-b border-white/10 px-6 py-4">
           <a href="/" className="text-lg tracking-widest font-semibold text-[var(--color-accent)]">

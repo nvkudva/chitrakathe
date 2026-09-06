@@ -23,3 +23,11 @@ Things that are deliberately unfinished, with what closing them requires. Nothin
 | **Client-side downscale before upload** | Photos upload at full size. Fine at 10 photos; add a canvas downscale if mobile uploads stall. |
 | **Title-card render speed** | ~100s per 32s trailer per aspect, dominated by Chromium frame capture. Cacheable: identical (template, language, field values) cards recur across re-renders. |
 | **`partner_code` is stored but unused** | Deliberate. See prd.md D3 — the reseller channel is a v2 decision, and the column exists so switching it on is not a migration under load. |
+
+## Found by looking at the running app
+
+| Gap | Note |
+|---|---|
+| **Date field shows `mm/dd/yyyy` for some users** | `<input type="date">` renders in the browser's UI language, which the page cannot override — `lang="en-IN"` does not reach it. On mobile, where nearly all of this traffic will be, the native picker follows the phone's locale and is correct. Revisit only if desktop users report it. |
+| **The footer stays English** | It lives in the root layout, which does not receive `searchParams`, so it cannot see `?lang`. Needs the language moved into the path (`/kn/...`) or a cookie. Not worth either until the language switch earns its keep. |
+| **No sample video on the gallery cards** | Still the highest-leverage conversion change available. The cards currently show a palette gradient. |
