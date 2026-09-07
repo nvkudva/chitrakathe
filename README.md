@@ -1,243 +1,89 @@
-<div align="center">
+# chitrakathe
 
-# ಚಿತ್ರಕಥೆ &nbsp;Chitrakathe
+Chitrakathe turns eight family photos and a short form into a 30-second vertical trailer for an Indian family function — a naming ceremony, a save-the-date, a first birthday, a housewarming — in Kannada, Konkani, Hindi or English.
 
-### A cinematic trailer for your family function. Minutes, not days.
+It is template-first rather than prompt-first: the family picks a storyboard and fills in fields, and the storyboard already owns the shot list, timing, typography and motion.
 
-Eight photos and a six-field form become a 30-second movie-trailer for an Indian family
-function — a baby naming, a save-the-date, a first birthday, a housewarming.
-**Kannada, Konkani, Hindi, English.** Watermarked preview free, **₹499** to download it clean.
+[Docs](docs/) - [Known gaps](docs/known-gaps.md)
 
-<img src="docs/screenshots/gallery-desktop.png" width="820" alt="The template gallery: four culturally specific storyboards on a dark glass interface">
+![The template gallery: four storyboard cards over gradient placeholders — the gallery shows palette gradients, not sample renders](docs/screenshots/gallery-desktop.png)
 
-</div>
+## Requirements
 
----
+- Node 22+ (`engines.node` in `package.json`)
+- PostgreSQL — one database serves both the domain tables and the pg-boss queue
+- ffmpeg and ffprobe on disk; paths go in `FFMPEG_PATH` / `FFPROBE_PATH`
+- Chromium, for shaping Kannada and Devanagari title cards; path goes in `CHROMIUM_PATH`
+- Noto fonts covering Kannada and Devanagari — without them the title cards render tofu
+- DejaVu Sans Bold at `/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf`, hardcoded by the watermark step
+- No API keys are needed for a local run: video, TTS and moderation providers all default to stubs. Razorpay keys are needed for payment, Google OAuth keys for sign-in.
 
-## What makes it different
-
-Human studios charge **₹5,000–15,000** and take **3–7 days**. Generic AI tools make
-one-size-fits-all invitation videos from a prompt. Neither serves *one family, one event,
-next Saturday*.
-
-**This is template-first, not prompt-first.** A family cannot write a good prompt, and asking
-them to is why generic tools produce mediocre invitations. Instead they pick
-*"namakarana trailer, traditional Udupi"* and fill in six fields. The template already owns the
-shot list, the timing, the typography, the motion and the music.
-
-The video model is a replaceable backend. Most shots are the family's own photos under
-scripted camera motion; only **one or two shots per trailer** ever reach a generative model.
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-**The form asks for the photo each shot needs**
-
-Not "upload 8 photos". The storyboard consumes photos by index with fixed meaning — photo 1
-gets a centre-weighted push-in on a face, photo 8 sits under the date text. So the form asks
-for *"a close photo of the baby's face"* and *"a wide, uncluttered photo — the date goes over
-this one"*.
-
-<img src="docs/screenshots/form-phone-kn.png" width="330" alt="The brief form in Kannada, with eight labelled photo slots">
-
-</td>
-<td width="50%" valign="top">
-
-**Watch the whole thing before you pay**
-
-The preview is the real render, watermarked. Payment unlocks a file that already exists — it
-never triggers a second render. Nobody buys unseen.
-
-<img src="docs/screenshots/preview-phone-kn.png" width="330" alt="The finished trailer playing, with the ₹499 UPI paywall beneath it">
-
-</td>
-</tr>
-</table>
-
-### What comes out
-
-Frames from a real render — `namakarana-udupi`, Kannada, produced by the pipeline in this repo.
-
-<div align="center">
-<img src="docs/screenshots/trailer-name-reveal.jpg" width="260" alt="The name reveal: ಆದ್ವಿಕ್ in large Kannada type over black">
-&nbsp;&nbsp;
-<img src="docs/screenshots/trailer-details.jpg" width="260" alt="Date, time and venue in Kannada over a darkened photo">
-</div>
-
-Kannada and Devanagari conjuncts need a real shaping engine, so title cards are rendered in
-headless Chromium and composited by ffmpeg. `drawtext` renders them broken or as tofu — this
-is correctness, not polish.
-
----
-
-## Gross margin at the launch price
-
-**₹499** per event: unwatermarked download, both aspect ratios, one free re-render.
-
-| Line | Basis | Cost |
-|---|---|---|
-| Generative shots | 2 × 5s, Seedance 720p i2v via fal @ ~$0.26/clip | ₹46.30 |
-| Voiceover (TTS) | ~250 chars, Sarvam @ ₹30 / 10k chars | ₹0.75 |
-| Image moderation | 10 images | ₹1.00 |
-| Worker compute | ~2 min CPU | ₹2.00 |
-| Storage + CDN | ~70 MB for the retention window, R2 | ₹1.00 |
-| **Direct render cost** | | **₹51.05** |
-| Payment gateway | Razorpay 2% + 18% GST | ₹11.78 |
-| **Total on a paid job** | | **₹62.83** |
-
-> ### **87.4% gross margin per paid render**
-> ### **68.4% blended**, carrying every free preview that never converts
-
-The two differ because **the free preview is a full render**, costing ₹51.05 whether or not
-they buy. At an assumed 35% preview→paid conversion:
-
-```
-blended cost per paying family = 51.05 / 0.35 + 11.78 = ₹157.63
-blended margin                 = (499 − 157.63) / 499 = 68.4%
-```
-
-**Conversion, not model price, decides whether this business works.** At 20% the blended margin
-falls to 46%; at 50% it rises to 76%. The dashboard plots the real number.
-
-<div align="center">
-<img src="docs/screenshots/dashboard-desktop.png" width="820" alt="The cost dashboard: renders, conversion, ceiling refusals, revenue and blended margin">
-</div>
-
-Three things protect that margin, all enforced in code:
-
-1. **The master is rendered once.** Payment unlocks an existing file.
-2. **Each generative shot is generated once per job**, at 9:16, and every export is a crop of it.
-   `scripts/check-cost-once.ts` fails the build if that regresses — it has regressed before, and
-   it made the number above wrong.
-3. **A hard ceiling of ₹95 per job.** Every priced call is quoted against a ledger *before* it
-   runs. A shot that cannot be afforded degrades to its authored photo fallback; a job that
-   cannot fit is refused and the family is not charged.
-
----
-
-## Running it
-
-**Needs:** Node 22+, PostgreSQL 16+, ffmpeg, Chromium, and Noto fonts for Kannada and Devanagari.
+## Run it
 
 ```bash
-sudo apt-get install -y ffmpeg fonts-noto-core
+git clone https://github.com/nvkudva/chitrakathe.git
+cd chitrakathe
+# Debian/Ubuntu; on other platforms install the same list by hand
+sudo apt-get install -y ffmpeg fonts-noto-core fonts-dejavu-core chromium postgresql
 npm install
-cp .env.example .env          # defaults run fully offline, no API keys
+cp .env.example .env    # fill in the variables below
 createdb chitrakathe && npm run migrate
-npm test
+npm run dev             # web tier on port 3000
+npm run worker          # render worker, its own process
 ```
 
-### One template, end to end, with no network
+A clean clone does not build yet — see Status.
 
-```bash
-npx tsx scripts/make-fixtures.ts                          # placeholder photos + music
-npm run render:brief -- fixtures/brief.namakarana.json
-```
+Once it does, `npx tsx scripts/make-fixtures.ts` followed by `npm run render:brief -- fixtures/brief.namakarana.json` writes a playable 1080x1920 MP4 plus a watermarked preview and prints the cost ledger, with no database, queue or network.
 
-Writes a playable 1080×1920 MP4 with real Kannada typography, plus the watermarked preview, and
-prints the cost ledger. No database, no queue, no API keys — this is the check that the
-storyboard, the type shaping, the compositor and the ledger all work before anything is built
-on top of them.
+## Configuration
 
-### The whole thing
+| Variable | Required | What it is |
+|---|---|---|
+| `DATABASE_URL` | yes | Postgres connection; shared by the app and pg-boss |
+| `APP_URL` | yes | Public base URL; the Google redirect URI must be `$APP_URL/api/auth/callback` |
+| `SIGNING_SECRET` | yes | HMAC key for session cookies and signed storage URLs. Replace the `.env.example` default |
+| `STORAGE_DRIVER` | yes | `local` or `s3` |
+| `STORAGE_LOCAL_DIR` | local driver | Directory for uploads and renders |
+| `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_BASE_URL` | s3 driver | Object store credentials and public base |
+| `VIDEO_PROVIDERS` | yes | Comma-separated primary,secondary from `fal`, `replicate`, `stub` |
+| `VIDEO_MODEL_PRIMARY`, `VIDEO_MODEL_SECONDARY` | non-stub video | Model ids; an unpriced model makes the ledger throw |
+| `FAL_KEY`, `REPLICATE_API_TOKEN` | non-stub video | Provider keys |
+| `TTS_PROVIDER`, `SARVAM_API_KEY`, `ELEVENLABS_API_KEY` | non-stub TTS | Voiceover provider and key |
+| `MODERATION_PROVIDER`, `SIGHTENGINE_USER`, `SIGHTENGINE_SECRET` | non-stub moderation | Image moderation provider and key |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | payments | Checkout and webhook verification |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | sign-in | OAuth web client |
+| `PRICE_LAUNCH_PAISE`, `PRICE_RERENDER_PAISE` | yes | Prices, in integer paise |
+| `COST_CEILING_PAISE` | yes | Hard per-job spend ceiling |
+| `FFMPEG_PATH`, `FFPROBE_PATH`, `CHROMIUM_PATH` | yes | Binary locations |
+| `ASSET_RETENTION_DAYS`, `OUTPUT_RETENTION_DAYS` | yes | Purge windows used by `npm run retention` |
+| `ADMIN_TOKEN` | admin page | Guards `/admin/costs` |
 
-```bash
-npm run dev        # web tier: enqueues and reads, never renders
-npm run worker     # render worker, its own process
-npm run costs      # cost and margin report
-npm run retention  # daily: purge photos past 30 days, outputs past 90
-```
+## How it works
 
-### Checks
+Three processes share one Postgres. The web tier under `src/app/api/` validates with zod, authorises, writes rows through `src/lib/repo.ts` and enqueues a job; `worker/index.ts` drains the render queue and calls `renderBrief` in `src/lib/render/pipeline.ts`; `scripts/retention.ts` runs as a cron and purges expired uploads and outputs. pg-boss lives in the same database (`src/lib/queue.ts`), so job state and domain state commit together and there is no Redis.
 
-```bash
-npm run typecheck
-npm test                                # 28 tests: ceiling, no-likeness, session cookie, uuid guard, Indic dates
-npx tsx scripts/check-languages.ts      # 4 templates × 4 languages → two contact sheets
-npx tsx scripts/check-cost-once.ts      # the model is called once per shot, not once per aspect
-```
+A render walks the storyboard in `src/lib/templates/*.json`. Most shots are the family's own photos under scripted camera motion; only one or two per trailer reach a generative video model. Title cards are rendered in headless Chromium and composited with ffmpeg, because `drawtext` cannot shape Kannada or Devanagari conjuncts. Spend is quoted and charged through `CostLedger` in `src/lib/cost/ledger.ts`, which refuses rather than exceed `COST_CEILING_PAISE`. Money is integer paise everywhere (`src/lib/money.ts`). Schema changes live in `db/migrations/` and are applied by `npm run migrate`.
 
----
+## Status
 
-## How it is built
+Not runnable from a clean clone. `.gitignore` ignores `storage/` without a leading slash, so `src/lib/storage/` — imported by the worker, the retention script and five API routes — is not in the repository. Typecheck, build and CI cannot pass until it is committed.
 
-```
-Next.js (App Router)  ──▶  Postgres  ◀──  render worker (own process)
-      │                       │                    │
-      │ presigned PUT         │ pg-boss queue      ├── VideoProvider  (fal ▸ replicate ▸ stub)
-      ▼                       │                    ├── TtsProvider    (sarvam ▸ elevenlabs ▸ stub)
- Object storage  ◀────────────┴────────────────────┤── Moderation     (sightengine ▸ stub)
- (S3-compatible)                                   └── Compositor     (Chromium cards + ffmpeg)
-```
+Built and exercised locally: the storyboard pipeline, Indic title-card shaping, the cost ledger, the render-decision transaction, Razorpay webhook handling, Google sign-in, retention, and the per-language contact-sheet check (`scripts/check-languages.ts`).
 
-- **Nothing renders in a web request.** The web tier writes a row and a queue message.
-- **pg-boss on the same Postgres.** No Redis; job state is transactional with domain state.
-- **Templates are JSON, validated at boot.** A malformed or over-budget template fails the
-  process at startup, not at render time with a family waiting.
-- **Sign-in gates the render, not the door.** A family browses, fills the brief, uploads photos
-  and watches the watermarked preview with no account. The render is the only irreversible
-  spend, so that is where Google sign-in sits. Watching a trailer stays public — the growth
-  loop is a WhatsApp forward. See [docs/auth.md](docs/auth.md).
+Not built, or known broken:
 
-### The interface
+- Delivery is logged, not sent. `src/lib/delivery.ts` prints the link; no email or WhatsApp provider is wired in.
+- Music beds are synthesised placeholders, not a soundtrack.
+- The gallery shows palette gradients, not sample renders.
+- Konkani strings have not been reviewed by a native speaker, and Konkani voiceover uses a Marathi voice.
+- A retried job builds a fresh ledger from an empty entry list, so a job that fails twice can spend up to three ceilings.
+- One unlock payment marks every job on the event paid, so the conversion and margin figures on `/admin/costs` read high.
+- `POST /api/events` is unauthenticated and has no rate limit.
+- Tests are unit-only — five files over pure functions. No route handler, payment path or worker retry is covered.
 
-Apple-style liquid glass, dark and cinematic, specified in
-[docs/design-spec.md](docs/design-spec.md). Glass is a *sampling* material, so a template-tinted
-scene layer sits behind everything; without it `backdrop-filter` renders as grey plastic.
+No trailer has been rendered for a real paying family yet. `docs/known-gaps.md` records roughly 100s of title-card capture per aspect per trailer; that figure carries no date and is an estimate, not a benchmark.
 
-Most of this product's traffic is mid-range Android, where `backdrop-filter` takes a slow
-readback path. Three independent gates drop to opaque fills with **identical geometry, radii,
-rim and shadows** — and the flat fill is never lighter than the glass it replaces, so contrast
-only improves.
+## License
 
-<table>
-<tr>
-<td align="center"><b>Glass</b><br><img src="docs/screenshots/gallery-desktop.png" width="400" alt="The gallery with glass materials enabled"></td>
-<td align="center"><b>Opaque fallback</b><br><img src="docs/screenshots/gallery-desktop-fallback.png" width="400" alt="The same gallery on the opaque fallback path"></td>
-</tr>
-</table>
-
-**Indic is a token, not a convention.** Every type style reads `var(--tracking)` and nothing
-sets `letter-spacing` literally, so `:lang(kn|hi|kok)` zeroes it in one place — tracking splits
-ನಾಮಕರಣ into ನಾ ಮ ಕ ರ ಣ. Buttons and fields use `min-height`, never `height`, because Kannada
-line boxes are taller.
-
-<div align="center">
-<img src="docs/screenshots/gallery-phone-kn.png" width="300" alt="The gallery in Kannada on a phone">
-</div>
-
-### No likeness generation
-
-The generated shots are **objects and environments** — a cradle, a lamp, the sea, a kalash.
-Never a face. Enforced three ways: `GenerativeShot.subject` has no `"person"` member, the
-template schema rejects any prompt that names a human subject or omits its explicit exclusion,
-and a test asserts both across all four templates.
-
-### Privacy
-
-Uploaded photos are hard-deleted after **30 days**, rendered videos kept **90**. EXIF including
-GPS is stripped on ingest. Every upload passes a moderation gate before a job can be queued.
-`npm run retention` is what makes those statements true — schedule it daily.
-
----
-
-## Layout
-
-```
-prd.md                      product spec, competitive study, open decisions
-docs/design-spec.md         the interface, in exact values
-docs/auth.md                why sign-in sits at the render
-docs/known-gaps.md          what is deliberately unfinished, and what it needs
-src/lib/templates/          the storyboards (JSON) + the schema that validates them
-src/lib/render/             ffmpeg, Chromium title cards, motion, the pipeline
-src/lib/cost/               price table, ledger, ceiling, margin reporting
-worker/index.ts             the render worker
-```
-
-## Before launch
-
-The merchant name, address and phone in `src/lib/legal.ts` are **literal blanks**, and the music
-beds are **synthesised placeholders**. Neither is filled with something plausible-looking on
-purpose — an invented address on a refund policy is worse than an obvious gap. Full list in
-[docs/known-gaps.md](docs/known-gaps.md).
+No licence file yet - all rights reserved.
