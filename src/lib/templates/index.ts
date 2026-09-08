@@ -63,5 +63,23 @@ export function photoAt(brief: Brief, index: number): string {
   return key;
 }
 
+/**
+ * The field a template treats as its headline — the one bound to the `hero`
+ * line on the reveal card. That is the baby's name, the first partner, the
+ * family name, and it is what the delivery screen and the shared link lead
+ * with.
+ *
+ * Do not infer this from key order: `Object.values(fields)[0]` depends on JSON
+ * ordering and picked the venue.
+ */
+export function heroFieldKey(t: Template): string | null {
+  for (const shot of t.shots) {
+    if (!("lines" in shot)) continue;
+    const hero = shot.lines.find((l) => l.style === "hero" && l.key);
+    if (hero?.key) return hero.key;
+  }
+  return null;
+}
+
 export { Template, totalDuration, generativeShots };
 export type { Language, Script, Brief };

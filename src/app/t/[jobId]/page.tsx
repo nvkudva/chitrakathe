@@ -3,7 +3,7 @@ import { config } from "@/lib/config";
 import { rupees } from "@/lib/money";
 import { isLanguage } from "@/lib/i18n/ui";
 import { storage } from "@/lib/storage";
-import { getTemplate } from "@/lib/templates";
+import { getTemplate, heroFieldKey } from "@/lib/templates";
 import { sql } from "@/lib/db";
 import { isUuid } from "@/lib/auth/eventAccess";
 import JobView from "@/components/JobView";
@@ -32,7 +32,16 @@ export async function generateMetadata({ params }: { params: Promise<{ jobId: st
     } catch {
       /* a retired template still gets a card */
     }
-    const name = Object.values((row.fields ?? {}) as Record<string, string>)[0]?.trim();
+    // Same rule as the delivery screen: the template's hero field, not the
+    // first key that happens to serialise first.
+    const fields = (row.fields ?? {}) as Record<string, string>;
+    let name: string | undefined;
+    try {
+      const key = heroFieldKey(getTemplate(row.template_id as string));
+      name = key ? fields[key]?.trim() : undefined;
+    } catch {
+      name = undefined;
+    }
     const title = name ? `${name} — ${occasion}` : occasion;
     const images = row.poster_key
       ? [await storage().signedDownload(row.poster_key as string, 60 * 60 * 24 * 7)]

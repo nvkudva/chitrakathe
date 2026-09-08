@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { listTemplates, totalDuration, generativeShots, photoAt } from "../src/lib/templates/index.ts";
+import { listTemplates, totalDuration, generativeShots, photoAt, heroFieldKey } from "../src/lib/templates/index.ts";
 import { LANGUAGES } from "../src/lib/templates/schema.ts";
 
 test("all four launch templates load and validate", () => {
@@ -83,4 +83,25 @@ test("photo indices wrap so a minimum-length brief still renders", () => {
   const brief = { photos: ["a", "b", "c", "d", "e", "f"] } as never;
   assert.equal(photoAt(brief, 0), "a");
   assert.equal(photoAt(brief, 7), "b", "index 7 must wrap onto a 6-photo brief");
+});
+
+test("every template declares a hero field, and it is not the venue", () => {
+  // The delivery screen and the WhatsApp link preview both lead with this.
+  // Deriving it from key order picked the venue, which is why it is now read
+  // from the storyboard's own `hero`-styled line.
+  const expected: Record<string, string> = {
+    "namakarana-udupi": "babyName",
+    "save-the-date-coastal": "eventDate",
+    "first-birthday-storybook": "childName",
+    "griha-pravesha-classic": "familyName",
+  };
+  for (const t of listTemplates()) {
+    const key = heroFieldKey(t);
+    assert.ok(key, `${t.id} has no hero-styled line bound to a field`);
+    assert.equal(key, expected[t.id], `${t.id} hero field changed`);
+    assert.ok(
+      t.fields.some((f) => f.key === key),
+      `${t.id} hero field "${key}" is not a declared form field`
+    );
+  }
 });

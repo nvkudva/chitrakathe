@@ -15,6 +15,8 @@ type Job = {
   degraded: string[];
   unlocked: boolean;
   watchable: boolean;
+  /** The family's own headline — the child's or couple's name. */
+  title: string | null;
   signedIn: boolean;
   owned: boolean;
   outputs: { aspect: string; previewUrl: string; posterUrl: string | null }[];
@@ -82,7 +84,7 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
 
   if (notFound) {
     return (
-      <div className="glass glass-rel tier-2 space-y-3 p-6">
+      <div className="panel panel-rel tier-2 space-y-3 p-6">
         <h1 className="t-title-2 ink-1">{tr(lang, "job.missing")}</h1>
         <p className="t-body ink-2">{tr(lang, "job.missingBody")}</p>
       </div>
@@ -90,13 +92,13 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
   }
 
   if (!job) {
-    return <div className="glass glass-rel tier-2 h-40 animate-pulse p-6" aria-busy="true" />;
+    return <div className="panel panel-rel tier-2 h-40 animate-pulse p-6" aria-busy="true" />;
   }
 
   if (job.status === "refused_over_ceiling" || job.status === "failed") {
     const refused = job.status === "refused_over_ceiling";
     return (
-      <div className="glass glass-rel tier-3 space-y-3 p-6">
+      <div className="panel panel-rel tier-3 space-y-3 p-6">
         <h1 className="t-title-2 ink-1">{tr(lang, refused ? "job.refused" : "job.failed")}</h1>
         <p className="t-body ink-2">{tr(lang, refused ? "job.refusedBody" : "job.failedBody")}</p>
       </div>
@@ -108,9 +110,11 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
   if (job.status !== "succeeded" && !job.watchable) {
     const pct = Math.max(4, job.progress);
     return (
-      <div className="glass glass-rel tier-2 space-y-4 p-6">
+      <div className="render-stage panel-rel space-y-4 p-6">
         <h1 className="t-title-2 ink-1">{tr(lang, "job.rendering")}</h1>
-        <div className="glass glass-rel tier-0 h-2 overflow-hidden" style={{ ["--r" as string]: "999px" }}>
+        {/* Turmeric on #141014 is 6.9:1; on the cream well it was 2.2:1, under
+            the 3:1 floor for a non-text indicator. */}
+        <div className="h-2 overflow-hidden rounded-full" style={{ background: "rgb(255 255 255 / 0.14)" }}>
           <div
             className="progress-fill h-full rounded-full"
             style={{
@@ -172,27 +176,34 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <div className="space-y-6">
-        <h1 className="t-title-1 ink-1">{tr(lang, stillWorking ? "job.almost" : "job.done")}</h1>
+        {/* The headline is the reason they came. "Your trailer is ready" is our
+            status, not their occasion. */}
+        <h1 className="t-title-1 ink-1">{job.title?.trim() || tr(lang, stillWorking ? "job.almost" : "job.done")}</h1>
+        {job.title?.trim() && (
+          <p className="-mt-4 t-callout ink-2">{tr(lang, stillWorking ? "job.almost" : "job.done")}</p>
+        )}
 
         {portrait && (
-          <div className="glass glass-rel tier-2 mx-auto w-full max-w-sm overflow-hidden p-2">
+          <div className="screen mx-auto w-full max-w-sm">
             <video
               src={portrait.previewUrl}
               poster={portrait.posterUrl ?? undefined}
               controls
+              autoPlay
+              muted
+              loop
               playsInline
               preload="metadata"
-              className="w-full rounded-2xl"
             />
           </div>
         )}
 
         {stillWorking && (
-          <p className="glass glass-rel tier-0 t-footnote ink-2 p-3 text-center">{tr(lang, "job.squarePending")}</p>
+          <p className="panel panel-rel tier-0 t-footnote ink-2 p-3 text-center">{tr(lang, "job.squarePending")}</p>
         )}
 
         {!job.unlocked ? (
-          <div className="glass glass-rel tier-3 mx-auto w-full max-w-sm space-y-4 p-5">
+          <div className="panel panel-rel tier-3 mx-auto w-full max-w-sm space-y-4 p-5">
             <p className="t-callout ink-2">{tr(lang, "preview.watermarked")}</p>
             <button onClick={pay} disabled={paying} className="btn btn-primary press focus-ring w-full">
               {paying ? "…" : tr(lang, "pay.cta").replace("{price}", priceLabel)}
@@ -205,7 +216,7 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
               <a
                 key={o.aspect}
                 href={`/api/download/${job.id}?aspect=${encodeURIComponent(o.aspect)}`}
-                className="glass glass-rel tier-2 press focus-ring block px-5 py-4 text-center t-callout ink-1"
+                className="panel panel-rel tier-2 press focus-ring block px-5 py-4 text-center t-callout ink-1"
               >
                 {tr(lang, o.aspect === "9:16" ? "download.portrait" : "download.square")}
               </a>
@@ -217,7 +228,7 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
           href={`https://wa.me/?text=${encodeURIComponent(shareUrl)}`}
           target="_blank"
           rel="noreferrer"
-          className="glass glass-rel tier-2 press focus-ring mx-auto flex w-full max-w-sm items-center justify-center gap-2 px-5 py-4 t-callout ink-1"
+          className="panel panel-rel tier-2 press focus-ring mx-auto flex w-full max-w-sm items-center justify-center gap-2 px-5 py-4 t-callout ink-1"
         >
           {tr(lang, "share.whatsapp")}
         </a>

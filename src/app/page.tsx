@@ -31,14 +31,12 @@ export default async function Gallery({ searchParams }: { searchParams: Promise<
     <div lang={lang} className="rise space-y-10">
       <LanguageBar current={lang} basePath="/" />
 
+      {/* Phone: the trailer is the first thing on the page and takes ~58% of
+          the first screen — a video product's shop window is the video, and a
+          buyer trained by Reels decides in about a second and a half. Desktop
+          has room for both, so the headline moves beside it. */}
       <section className="grid items-center gap-7 lg:grid-cols-[1fr_auto] lg:gap-12">
-        <div className="space-y-4 lg:order-1">
-          <h1 className="t-display ink-1 max-w-[18ch]">{t(lang, "app.tagline")}</h1>
-          <p className="t-body-lg ink-2 max-w-[46ch]">{t(lang, "gallery.sub")}</p>
-          <p className="t-callout gold-ink">{t(lang, "gallery.priceNote").replace("{price}", price)}</p>
-        </div>
-
-        <div className="lg:order-2 space-y-2">
+        <div className="order-1 space-y-2 lg:order-2">
           <SampleTile
             templateId={hero.id}
             hero
@@ -49,6 +47,12 @@ export default async function Gallery({ searchParams }: { searchParams: Promise<
             style={{ height: "min(58svh, 520px)", aspectRatio: "9 / 16" }}
           />
           <p className="t-footnote ink-3 text-center">{t(lang, "gallery.sampleNote")}</p>
+        </div>
+
+        <div className="order-2 space-y-4 lg:order-1">
+          <h1 className="t-display ink-1 max-w-[18ch]">{t(lang, "app.tagline")}</h1>
+          <p className="t-body-lg ink-2 max-w-[46ch]">{t(lang, "gallery.sub")}</p>
+          <p className="t-callout gold-ink">{t(lang, "gallery.priceNote").replace("{price}", price)}</p>
         </div>
       </section>
 

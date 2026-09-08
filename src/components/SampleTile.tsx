@@ -123,26 +123,26 @@ export default function SampleTile({
         style={{ borderRadius: hero ? 18 : 14 }}
       />
       {label && (
-        <>
-          {/* Scrim, not a shadow: the name has to stay legible over 30 seconds
-              of moving footage, including the frames that are nearly white. */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-2 bottom-2"
-            style={{
-              height: "52%",
-              borderRadius: `0 0 ${hero ? 18 : 14}px ${hero ? 18 : 14}px`,
-              background:
-                "linear-gradient(180deg, transparent 0%, rgb(10 8 7 / .20) 38%, rgb(10 8 7 / .72) 72%, rgb(10 8 7 / .88) 100%)",
-            }}
-          />
+        /* The plate, not a shadow: the name must hold over 30 seconds of moving
+           footage including the frames that are nearly white. Cream on a .72
+           alpha plate is 7.8:1 against a pure-white frame — the worst case a
+           video can produce — and 13:1 against the dark frames. */
+        <div
+          className="absolute inset-x-2 bottom-2 px-4 pb-4"
+          style={{
+            paddingTop: 34,
+            borderRadius: `0 0 ${hero ? 18 : 14}px ${hero ? 18 : 14}px`,
+            background:
+              "linear-gradient(180deg, rgb(10 8 7 / 0) 0%, rgb(10 8 7 / .72) 34%, rgb(10 8 7 / .90) 100%)",
+          }}
+        >
           <h2
-            className={`absolute inset-x-0 bottom-0 px-4 pb-4 ${hero ? "t-title-2" : "t-title-3"}`}
-            style={{ color: "#FFF6E9", textShadow: "0 1px 3px rgb(0 0 0 / .55)" }}
+            className={hero ? "t-title-2" : "t-title-3"}
+            style={{ color: "#FFF6E9", textShadow: "0 1px 3px rgb(0 0 0 / .5)" }}
           >
             {label}
           </h2>
-        </>
+        </div>
       )}
     </div>
   );

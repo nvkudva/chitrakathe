@@ -146,8 +146,6 @@ body {
    being rewritten in parallel (T5) and is not ours to edit — so the old names
    keep working until that lands. Delete these two rules once nothing uses them:
    `grep -rn "glass" src/`. */
-.glass { isolation: isolate; border-radius: var(--r, var(--radius-card)); }
-.glass-rel { position: relative; }
 
 /* tier-0 — a recessed well (inputs, chips, segmented tracks).
    The well is darker than the page, so tertiary ink steps down one notch

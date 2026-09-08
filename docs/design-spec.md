@@ -1,450 +1,65 @@
 # Chitrakathe — Design Spec
 
-Version 1.0 · target: Next.js 16 / React 19 / Tailwind v4 (`@theme`).
+Version 1.1 · target: Next.js 16 / React 19 / Tailwind v4 (`@theme`).
+Sections 0–3 are retired; see the note below. Sections 4 onward are current.
 
 **Priority order when two rules conflict:**
 1. Kannada / Devanagari renders correctly on a 393 px phone.
 2. Text passes WCAG AA against the *lightest possible* composite of the material it sits on.
 3. Tap targets ≥ 44 px.
-4. The glass looks like glass.
+4. The page reads as invitation card stock, not as a dashboard.
 5. Desktop polish.
 
 Anything below that jeopardises 1–3 is a bug, not a taste question.
 
 ---
 
-## 0. The one structural change everything else depends on
+## 0–3. RETIRED — the glass system, the scene, the light source and the dark palette
 
-Today `html, body { background: #120508 }` is a **flat fill**. `backdrop-filter` over a flat
-fill produces a uniform grey wash — it reads as plastic, not glass, because there is nothing
-behind it to blur, saturate or bend. Liquid Glass is a *sampling* material; it needs a scene.
+**Superseded by the T2 repaint (`docs/review/ux-tasks.md` §2, `docs/review/dev-backlog.md`).**
+The client rejected the near-black look; two independent reviews converged on the same
+reason, and the app is now paper and turmeric. `src/app/globals.css` is the authority.
 
-So the app gets a **Scene layer**: one fixed, non-scrolling, template-tinted gradient field
-that sits behind all content. It is the only thing in the app allowed to carry saturated colour.
-Every surface above it is achromatic glass that borrows the scene's colour through
-`saturate()`.
+What went, and why it is not coming back:
 
-```html
-<body>
-  <div class="scene" aria-hidden="true"></div>   <!-- fixed, z-index 0 -->
-  <div class="app">…</div>                       <!-- z-index 1 -->
-</body>
-```
+- **The scene layer.** Glass is a *sampling* material and there was never any content behind
+  it to sample — the spec had to forbid colour on surfaces, clamp the scene to 14% tint and
+  clamp every accent toward grey, which locked the product out of ever showing its own video.
+- **Every `backdrop-filter`, the four `--mat-*-backdrop` tokens, the tier flat-fallback
+  blocks, the `prefers-reduced-transparency` path and the inline `data-glass` device gate.**
+  Opaque paper is cheaper than four stacked blurs on exactly the mid-range Android hardware
+  the gate was written to protect, so the gate has nothing left to protect.
+- **The near-black palette.** Cream serif centred on `#140507` is the visual grammar of a
+  condolence notice. That is wrong in the artefact a family forwards, not merely in the
+  chrome, and near-black crushes and bands on mid-range Android LCDs.
 
-```css
-.scene {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-color: var(--scene-base);
-  background-image:
-    /* key light — top-centre, matches --light-x/--light-y in §2 */
-    radial-gradient(112% 74% at 50% -12%,
-      color-mix(in oklab, var(--scene-tint) var(--scene-tint-a), transparent) 0%,
-      transparent 62%),
-    /* low warm bounce, bottom-right */
-    radial-gradient(84% 60% at 88% 104%,
-      color-mix(in oklab, var(--scene-tint) calc(var(--scene-tint-a) * 0.55), transparent) 0%,
-      transparent 70%),
-    /* cool counter-fill, bottom-left, keeps the field from going monochrome */
-    radial-gradient(70% 52% at 4% 88%,
-      color-mix(in oklab, var(--scene-accent) 6%, transparent) 0%,
-      transparent 66%);
-}
-/* Grain. Kills banding on 8-bit mid-range Android panels, which is very visible
-   on a near-black gradient. 128x128 tile, ~1.6 KB, base64-inlined in globals.css. */
-.scene::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/png;base64,…");  /* 128px monochrome noise */
-  background-size: 128px 128px;
-  opacity: 0.035;
-  mix-blend-mode: overlay;
-}
-```
+The palette now (all measured on the real composited ground, `tests/contrast.test.ts`):
 
-`--scene-tint-a` is **14%** and is a hard ceiling (§3.4). It is not a taste value: at 32% the
-first-birthday template's mint `muted` (#63C7B2) lifts the composite to L 0.086 and body text
-drops to 3.4:1. 14 % holds every template ≥ 4.7:1.
-
-Do not put `backdrop-filter` on `.scene`. Do not animate it. It repaints once.
-
----
-
-## 1. Materials
-
-Four tiers. **Never nest one glass tier inside another** — two stacked `backdrop-filter`s
-double the cost and the second one samples the first's already-blurred output, which looks
-like fog. If a card needs a sub-surface, the sub-surface uses Tier 0 (no blur).
-
-Shared geometry for every tier:
-
-```css
-.glass { position: relative; isolation: isolate; border-radius: var(--r); }
-.glass > * { position: relative; z-index: 1; }
-```
-
-### Tier 0 — Recessed control
-Text fields, textareas, the segmented-control track, the progress track, table row wells.
-This tier is **cut into** the surface, so the light is inverted: dark hairline on top, faint
-light on the bottom.
-
-```css
---mat-0-backdrop: blur(8px) saturate(140%);
---mat-0-fill:
-  linear-gradient(180deg, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0.10) 62%, rgba(0,0,0,0.06) 100%),
-  rgba(255,255,255,0.045);
---mat-0-border: 1px solid rgba(255,255,255,0.13);   /* 3.0:1 vs scene — WCAG 1.4.11 */
---mat-0-shadow:
-  inset 0 1px 2px rgba(0,0,0,0.45),
-  inset 0 -1px 0 rgba(255,255,255,0.07),
-  0 1px 0 rgba(255,255,255,0.045);
-```
-
-### Tier 1 — Chrome
-Nav bar, sticky bottom action bar, table header. Must stay legible while arbitrary content
-scrolls under it, so it carries an **opacity floor** (`--scene-base` at 52 %) on top of the
-white fill; blur alone is not enough when a bright photo thumbnail passes beneath.
-
-```css
---mat-1-backdrop: blur(24px) saturate(180%) brightness(1.06);
---mat-1-fill:
-  linear-gradient(180deg, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.05) 48%, rgba(255,255,255,0.065) 100%),
-  color-mix(in oklab, var(--scene-base) 52%, transparent);
---mat-1-border-bottom: 1px solid rgba(255,255,255,0.12);
---mat-1-shadow:
-  inset 0 1px 0 rgba(255,255,255,0.18),
-  0 1px 28px -10px rgba(0,0,0,0.75);
-```
-
-### Tier 2 — Card (the default surface)
-Template cards, form sections, stat tiles, video frame, info panels. This is 90 % of the UI.
-
-```css
---mat-2-backdrop: blur(16px) saturate(150%) brightness(1.03);
---mat-2-fill:
-  linear-gradient(180deg, rgba(255,255,255,0.085) 0%, rgba(255,255,255,0.045) 44%, rgba(255,255,255,0.055) 100%),
-  color-mix(in oklab, var(--scene-base) 26%, transparent);
---mat-2-border: 1px solid rgba(255,255,255,0.10);   /* replaced by the rim in §2 */
---mat-2-shadow:
-  inset 0 1px 0 rgba(255,255,255,0.14),
-  inset 0 -1px 0 rgba(0,0,0,0.30),
-  0 8px 24px -12px rgba(0,0,0,0.70),
-  0 1px 2px rgba(0,0,0,0.40);
-```
-
-### Tier 3 — Popover / sheet / paywall
-The paywall card, the bottom sheet, the error toast, the modal. Strongest separation:
-this is the tier that is allowed to *hide* what is behind it.
-
-```css
---mat-3-backdrop: blur(40px) saturate(200%) brightness(1.10);
---mat-3-fill:
-  linear-gradient(180deg, rgba(255,255,255,0.135) 0%, rgba(255,255,255,0.065) 40%, rgba(255,255,255,0.085) 100%),
-  color-mix(in oklab, var(--scene-base) 44%, transparent);
---mat-3-shadow:
-  inset 0 1px 0 rgba(255,255,255,0.24),
-  inset 0 -1px 0 rgba(0,0,0,0.36),
-  0 24px 64px -16px rgba(0,0,0,0.82),
-  0 2px 8px rgba(0,0,0,0.50);
---mat-3-scrim: rgba(6,5,8,0.56);   /* behind a modal only; not for the paywall inline card */
-```
-
-### 1.5 Fallback ladder (this is not optional — it is the Android path)
-
-Three independent gates, all of which resolve to the **same geometry, radii, borders and
-shadows**. Only the fill changes. A user must never be able to tell which path they got by
-anything other than translucency.
-
-```css
-/* Gate A — engine has no backdrop-filter at all */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root { --glass: 0; }
-}
-/* Gate B — user asked for less translucency (iOS "Reduce Transparency", Win "Transparency off") */
-@media (prefers-reduced-transparency: reduce) { :root { --glass: 0; } }
-/* Gate C — device is too weak. Set by the inline script below. */
-html[data-glass="off"] { --glass: 0; }
-```
-
-```html
-<!-- in <head>, inline, render-blocking, ~200 bytes. Runs before first paint so there is no flash. -->
-<script>
-(function(){
-  var n = navigator, w = window;
-  var weak =
-    (n.deviceMemory && n.deviceMemory <= 4) ||
-    (n.hardwareConcurrency && n.hardwareConcurrency <= 4) ||
-    (n.connection && n.connection.saveData) ||
-    (w.matchMedia && w.matchMedia("(update: slow)").matches);
-  if (weak) document.documentElement.setAttribute("data-glass","off");
-})();
-</script>
-```
-
-`deviceMemory <= 4 || hardwareConcurrency <= 4` catches essentially the whole sub-₹15,000
-Android bracket (Snapdragon 4-series, Helio G-series, Unisoc T-series), which is the majority
-of this product's traffic. Those GPUs render `backdrop-filter` on a slow readback path and
-drop to ~20 fps while scrolling a 4-card grid.
-
-**Opaque fallback fills** (`--glass: 0`). No `backdrop-filter` property is emitted at all —
-not `blur(0)`, which still allocates the backdrop texture.
-
-```css
---mat-0-fill-flat: color-mix(in oklab, var(--scene-base) 100%, white 3%);
---mat-1-fill-flat: color-mix(in oklab, var(--scene-base) 100%, white 9%);
---mat-2-fill-flat: color-mix(in oklab, var(--scene-base) 100%, white 7%);
---mat-3-fill-flat: color-mix(in oklab, var(--scene-base) 100%, white 13%);
-```
-
-Worked example, namakarana (`--scene-base: #130608`):
-Tier 2 flat = `#291B1D`, Tier 3 flat = `#33262A`. Both are *darker* than the translucent
-composite worst case (§3.5), so contrast can only improve on the fallback path. That is the
-design rule: **the flat fallback is never lighter than the glass it replaces.**
-
-Additional cost rules, all enforceable in review:
-- **Maximum 3 `backdrop-filter` elements composited at once per screen.** The template gallery
-  has 4 cards; the cards are Tier 2 but on `data-glass="off"` and on any viewport < 480 px
-  they render flat. Only the nav (Tier 1) and at most one sheet (Tier 3) blur on a phone.
-- **Never transition or animate `backdrop-filter`.** Cross-fade the *opacity* of a duplicate
-  overlay layer instead.
-- Every glass element needs `will-change: transform` only while it is actually animating;
-  remove it on `animationend`. A permanent `will-change` on 4 cards pins 4 extra layers.
-- `contain: paint` on Tier 2 cards.
-
----
-
-## 2. The light source
-
-One light. Fixed in viewport space, not element space:
-
-```css
---light-x: 50%;
---light-y: -18%;   /* above the top edge */
-```
-
-Glass reads as glass from four cues, in order of how much they matter:
-
-**(a) The rim.** The single highest-value detail, and the thing a flat `border: 1px solid
-rgba(255,255,255,.1)` gets wrong. A real bevel catches the light on the top arc, goes nearly
-black on the sides, and picks up a weak bounce on the bottom arc. Implement as a masked
-gradient ring, not a border:
-
-```css
-.glass::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;                       /* rim thickness — 1px; 1.5px on Tier 3 only */
-  background: linear-gradient(180deg,
-    rgba(255,255,255,0.38) 0%,        /* top arc: specular */
-    rgba(255,255,255,0.11) 18%,
-    rgba(255,255,255,0.035) 52%,      /* sides: nearly extinguished */
-    rgba(255,255,255,0.05)  82%,
-    rgba(255,255,255,0.14)  100%);    /* bottom arc: bounce, ~1/3 of the top */
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  pointer-events: none;
-  z-index: 2;
-}
-```
-Top:bottom highlight ratio is **0.38 : 0.14 ≈ 2.7 : 1**. Never make them equal; that is the
-tell of a fake bevel. On Tier 0 (recessed) the gradient is **inverted**: 0.02 at the top,
-0.16 at the bottom.
-
-**(b) Body sheen.** A wide, very low-contrast wash across the top 40 % of the surface, which
-is what a curved top face does to a distant light.
-
-```css
-.glass::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    radial-gradient(140% 100% at var(--light-x) var(--light-y),
-      rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 26%, transparent 46%);
-  pointer-events: none;
-  z-index: 0;
-}
-```
-
-**(c) Colour concentration.** `saturate(150%–200%)` on the backdrop is not decoration — it is
-the *only* CSS approximation of the fact that glass concentrates the colour of what it
-transmits. It is why Tier 3 is more saturated than Tier 2: thicker glass, more concentration.
-`brightness(1.03–1.10)` does the same job for the top-lit curve.
-
-**(d) Edge lensing.** A real lens compresses the background near its rim. Approximate with a
-second, inset ring that is *more* blurred and slightly darker, 3 px wide:
-
-```css
-.glass-lens::before {           /* additional element, Tier 2/3 only, desktop + capable phones */
-  content: "";
-  position: absolute;
-  inset: 1px;
-  border-radius: inherit;
-  backdrop-filter: blur(3px) brightness(0.94);
-  -webkit-mask: radial-gradient(closest-side, transparent calc(100% - 3px), #000 100%);
-}
-```
-This *does* count against the 3-blur budget in §1.5 — so it is gated to
-`@media (min-width: 768px) and (hover: hover)` and never ships to the phone.
-
-### What CSS cannot do, honestly
-
-- **True refraction / displacement.** There is no CSS primitive that offsets backdrop pixels
-  by a normal map. The Apple material bends what's behind it; CSS can only blur, tint and
-  saturate it.
-- `backdrop-filter: url(#displacementFilter)` is **not a viable answer here.** Safari ignores
-  `url()` in `backdrop-filter`; Chromium accepts it but takes an uncached, full-surface
-  software path that costs 30–80 ms per frame on the exact Android hardware this product runs
-  on. **Do not ship an SVG `feDisplacementMap` in this app.**
-- **Specular caustics / dispersion** (the coloured fringe at a thick glass edge) would need
-  per-channel offset. A 1 px `box-shadow` fringe faking it reads as chromatic aberration, i.e.
-  as a rendering bug. Skip it.
-- **Real-time environment response.** The material cannot know what is behind it beyond the
-  blur. The compensation is that our scene (§0) is a *known* gradient, so the rim and sheen
-  gradients above are hand-tuned to the light direction of that scene and stay coherent.
-
-The credible approximation, and what we ship, is: **asymmetric rim (2.7:1) + top-anchored
-sheen + saturate/brightness on the backdrop + a real drop shadow with a tight ambient term.**
-That reads as glass at arm's length on a phone, which is the only viewing condition that
-matters here.
-
----
-
-## 3. Colour
-
-### 3.1 Base tokens (`src/app/globals.css`, Tailwind v4 `@theme`)
-
-```css
-@theme {
-  /* ---- Substrate ---------------------------------------------------- */
-  --color-void:        #08070A;   /* below everything; the <html> fill */
-  --color-scene-base:  #130608;   /* overwritten per template, see §3.3 */
-  --color-scene-tint:  #7B1E28;   /* per template */
-  --color-scene-accent:#D4A017;   /* per template */
-
-  /* ---- Ink (alpha ladder over any tier; see §3.5 for measured ratios) - */
-  --color-ink:            #FBF3E4;                    /* per template */
-  --color-ink-primary:    rgb(from var(--color-ink) r g b / 1);
-  --color-ink-secondary:  rgb(from var(--color-ink) r g b / 0.74);
-  --color-ink-tertiary:   rgb(from var(--color-ink) r g b / 0.62);
-  --color-ink-quaternary: rgb(from var(--color-ink) r g b / 0.46);  /* ≥19px only */
-  --color-ink-disabled:   rgb(from var(--color-ink) r g b / 0.34);  /* non-text only */
-
-  /* ---- Accent -------------------------------------------------------- */
-  --color-accent:      #D4A017;   /* per template — fills, bars, rings */
-  --color-accent-text: #D4A017;   /* per template — accent used AS TEXT, see §3.4 */
-  --color-on-accent:   #14100A;   /* text on an accent fill; ≥ 7:1 on all four */
-
-  /* ---- Semantic (fixed across templates; verified on the lightest tier) */
-  --color-danger:  #FF9A92;   /* worst case 4.90:1 */
-  --color-warning: #F5C86B;   /* worst case 6.36:1 */
-  --color-success: #7BE0A8;   /* worst case 6.23:1 */
-  --color-focus:   #8FD3FF;   /* worst case 6.16:1; 9.04:1 on the scene */
-
-  /* ---- Hairlines & separators (WCAG 1.4.11 non-text ≥ 3:1) ------------ */
-  --color-hairline:        rgba(255,255,255,0.13);
-  --color-hairline-strong: rgba(255,255,255,0.22);
-  --color-separator:       rgba(255,255,255,0.09);  /* decorative only, never a control edge */
-}
-```
-
-### 3.2 Why `--color-ink-*` is an alpha ladder, not four hexes
-Each template ships its own `ink`. Deriving the ladder with `rgb(from … / a)` means one rule
-covers all four templates and the ladder stays in the template's colour temperature. It also
-means the whole ladder is verified by one script (§3.5) rather than sixteen hand-picked hexes.
-
-### 3.3 Mapping a template palette onto the glass tokens
-
-`src/lib/templates/*.json` already carries `palette: { bg, ink, accent, muted }`. Map it on the
-server, on the `<html>` element, so there is no flash and no client JS:
-
-```tsx
-// src/app/layout.tsx  (or the template route)
-<html lang={lang} style={{
-  "--color-scene-base":   sceneBase(p.bg),   // mix(#0A090C, p.bg, 85%)
-  "--color-scene-tint":   p.muted,
-  "--color-scene-accent": p.accent,
-  "--color-ink":          p.ink,
-  "--color-accent":       p.accent,
-  "--color-accent-text":  accentText(p),     // see below
-  "--scene-tint-a":       "14%",
-} as React.CSSProperties}>
-```
-
-| template JSON key | glass token | transform |
-|---|---|---|
-| `palette.bg` | `--color-scene-base` | `mix(#0A090C, bg, 85%)` in oklab — pulls every template toward one shared black so the four templates feel like one product |
-| `palette.muted` | `--color-scene-tint` | used **only** in `.scene`, at `--scene-tint-a` = 14 % max |
-| `palette.accent` | `--color-accent` | verbatim; used for fills, bars, rings, the progress bar |
-| `palette.accent` | `--color-accent-text` | lightened toward `ink` until ≥ 4.6:1 on the lightest tier (§3.4) |
-| `palette.ink` | `--color-ink` | verbatim; drives the whole alpha ladder |
-| — | Tier 0–3 fills | **achromatic**. Surfaces are never tinted directly. Their colour comes from `saturate()` sampling the scene. This is the rule that stops a bright template from wrecking contrast. |
-
-### 3.4 The two hard clamps
-
-**Clamp 1 — scene luminance.** `--scene-tint-a` ≤ 14 %, and the composite hot spot must have
-relative luminance ≤ 0.055. Add a boot-time assertion next to the existing template validation
-(`src/lib/templates/index.ts`, which already throws on a bad template):
-
-```ts
-// a template whose scene lifts past this cannot be made AA-compliant by any text colour
-if (relLuminance(compose(base, muted, 0.14)) > 0.055) throw new Error(`${id}: palette.muted too light`);
-```
-`first-birthday-storybook`'s `muted: #63C7B2` lands at L 0.0215 at 14 % (pass) but L 0.086 at
-32 % (fail). This clamp is what makes the mint template safe.
-
-**Clamp 2 — accent as text.** `#FF7A5C` on the first-birthday popover tier measures **3.90:1**
-— it fails AA for body text. Derive a separate text-safe accent:
-
-```ts
-export function accentText(p: Palette): string {
-  let c = p.accent;
-  for (let t = 0; contrast(c, worstSurface(p)) < 4.6 && t <= 1; t += 0.02) c = mix(p.accent, p.ink, t);
-  return c;
-}
-```
-
-Computed results, to be committed as a snapshot test:
-
-| template | `accent` | `accent-text` | accent-text CR |
+| token | hex | use | CR |
 |---|---|---|---|
-| namakarana-udupi | `#D4A017` | `#D4A017` (unchanged) | 5.81:1 |
-| save-the-date-coastal | `#C8A45C` | `#C8A45C` (unchanged) | 5.32:1 |
-| griha-pravesha-classic | `#C9A227` | `#C9A227` (unchanged) | 5.28:1 |
-| first-birthday-storybook | `#FF7A5C` | **`#FF9378`** | 4.62:1 |
+| `--color-paper` | `#FFFBF4` | page ground | — |
+| `--color-paper-2` | `#FFF6E9` | raised card (`.tier-2`, `.tier-3`) | — |
+| `--color-paper-3` | `#F7EDDC` | recessed well (`.tier-0`) | — |
+| `--ink-1` | `#1C1512` | headings, body | 17.5:1 on paper |
+| `--ink-2` | `#57493F` | secondary | 8.4:1 |
+| `--ink-3` | `#7D6D60` | tertiary (`#786858` inside a well) | 4.8:1 / 4.6:1 |
+| `--color-hairline` | `#E8DCC9` | separators | non-text |
+| `--color-gold-ink` | `#8A6A12` | gold *as text* | 4.9:1 |
+| `--color-cta` / `--color-on-cta` | `#D4A017` / `#241A05` | primary button | 7.2:1 label on fill |
+| `palette.accentOnPaper` | per template | accent *as text* | 4.8–10.7:1 |
 
-`--color-accent` (the fill) stays `#FF7A5C` — a fill has no text-contrast requirement, only the
-3:1 non-text requirement, which it passes.
+There is no fourth ink step: on paper anything lighter than `--ink-3` drops under 4.5:1, so
+`--ink-4` is an alias, not a tone. `palette.accent` survives untouched as a **fill** — it is
+the colour used inside the film, where it sits on the template's own dark grounds.
 
-### 3.5 Measured contrast — the numbers that must not regress
+Dark survives in exactly three places, and is better for being rare: the `.screen` video
+bezel (`#141014`), the `.render-stage` in-progress card, and `/admin/costs`, which opts in
+with `.admin-dark` because a dark achromatic dashboard is right for a dashboard.
 
-Worst case per template = **Tier 3 (popover) fill over the scene hot spot**, which is the
-lightest surface any text can land on. Computed with the sRGB WCAG 2.x formula.
-
-| template | worst surface | ink 1.0 | secondary 0.74 | tertiary 0.62 | quaternary 0.46 |
-|---|---|---|---|---|---|
-| namakarana-udupi | `#3D2729` | **12.52** | **7.58** | **5.78** | 3.89 |
-| save-the-date-coastal | `#2D3440` | **10.76** | **6.68** | **5.20** | 3.58 |
-| first-birthday-storybook | `#3D4440` | **9.35** | **6.00** | **4.72** | 3.36 |
-| griha-pravesha-classic | `#2D3430` | **11.13** | **6.86** | **5.34** | 3.65 |
-
-- ink / secondary / tertiary: **AA body (4.5:1) on every template.** Use freely at any size.
-- quaternary (3.36–3.89): **AA large only** — ≥ 19 px, or ≥ 15 px bold. Legal for the metadata
-  strip and helper text at `--text-callout` 15/600. **Never at 12 px.**
-- disabled 0.34: decorative/non-text only; a disabled control must also carry a non-colour cue.
-- `--color-on-accent` `#14100A` on the four accents: 8.84 / 8.92 / 8.19 / 8.68:1.
-
-**Ship a test.** `tests/contrast.test.ts`: for each of the 4 templates × 4 tiers × 5 ink tokens,
-assert the ratio ≥ its floor. It runs in `npm test` and it is the only thing that keeps this
-section true after the fifth template lands.
+**§4 (typography, and every Indic rule in it) and §5 (motion) below are unchanged and remain
+in force.** They were never part of the glass system and they are the reason Kannada renders
+correctly; nothing in the repaint touched a `--track-*` token, a `min-height`, the 16px input
+floor, the Latin-only `.t-overline`, or `prefers-reduced-motion`.
 
 ---
 

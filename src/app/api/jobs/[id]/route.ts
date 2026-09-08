@@ -3,10 +3,22 @@ import { guard } from "@/lib/http";
 import { storage } from "@/lib/storage";
 import { isUnlocked } from "@/lib/payments";
 import * as repo from "@/lib/repo";
+import { getTemplate, heroFieldKey } from "@/lib/templates";
 import { currentSession } from "@/lib/auth/session";
 import { sql } from "@/lib/db";
 
 /** Progress polling. Preview URLs are signed; masters are never exposed here. */
+/** The template's own hero field, never a guess at key order. */
+function heroTitle(event: Awaited<ReturnType<typeof repo.getEvent>>): string | null {
+  if (!event) return null;
+  try {
+    const key = heroFieldKey(getTemplate(event.template_id, event.template_version));
+    return key ? (event.fields[key]?.trim() || null) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function handleGET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const job = await repo.getJob(id);
@@ -16,6 +28,7 @@ async function handleGET(_req: Request, ctx: { params: Promise<{ id: string }> }
   const store = storage();
   const unlocked = await isUnlocked(job.event_id);
 
+  const event = await repo.getEvent(job.event_id);
   const session = await currentSession();
   const [owned] = session
     ? await sql()`select 1 from events where id = ${job.event_id} and user_id = ${session.userId} limit 1`
@@ -33,6 +46,7 @@ async function handleGET(_req: Request, ctx: { params: Promise<{ id: string }> }
     error: job.status === "failed" ? "Render failed" : job.error,
     degraded: job.degraded_shots,
     unlocked,
+    title: heroTitle(event),
     signedIn: Boolean(session),
     owned: Boolean(owned),
     outputs: await Promise.all(
