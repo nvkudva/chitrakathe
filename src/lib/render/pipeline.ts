@@ -125,7 +125,7 @@ export async function renderBrief(opts: RenderOptions): Promise<RenderResult> {
         const preview = path.join(work, `preview.${aspect.replace(":", "x")}.mp4`);
         await watermark(master, preview, aspect);
         const poster = path.join(work, `poster.${aspect.replace(":", "x")}.jpg`);
-        await ffmpeg(["-ss", "1.2", "-i", master, "-frames:v", "1", "-q:v", "3", "-y", poster]);
+        await writePoster(master, poster, await durationOf(master), aspectDir);
 
         const bytes = (await fs.stat(master)).size + (await fs.stat(preview)).size;
         // Copy out before announcing: the temp dir is swept on the way out, and
@@ -153,6 +153,55 @@ export async function renderBrief(opts: RenderOptions): Promise<RenderResult> {
       await closeBrowser();
     }
   });
+}
+
+/**
+ * Picks the poster frame by looking at the film instead of guessing a timestamp.
+ *
+ * This used to be a hardcoded `-ss 1.2`, which lands 1.2s into a shot three of
+ * the four storyboards define as "black" — measured at 14/255 mean luma, the
+ * third-darkest moment in the trailer, while the family's own photos reach
+ * 82-104. That one frame is the og:image on every WhatsApp forward, the /mine
+ * thumbnail and the still behind the play button, so the most-shared image of
+ * the product was a black rectangle.
+ *
+ * A per-template constant would fix these four templates and break the fifth.
+ * Sampling the actual render is robust to any storyboard and any family's
+ * photos.
+ */
+async function writePoster(master: string, out: string, duration: number, work: string): Promise<void> {
+  // Skip the opening: several templates deliberately begin on black, and a
+  // poster from the first couple of seconds is never the shot worth showing.
+  const from = Math.min(2.5, duration * 0.1);
+  const to = Math.max(from, duration - 0.6);
+  const samples = 12;
+
+  let best = { t: from, luma: -1 };
+  const probe = path.join(work, "poster-probe.gray");
+  const W = 64;
+  const H = 114;
+
+  for (let i = 0; i < samples; i++) {
+    const t = +(from + ((to - from) * i) / (samples - 1)).toFixed(2);
+    try {
+      await ffmpeg([
+        "-ss", String(t), "-i", master, "-frames:v", "1",
+        "-vf", `scale=${W}:${H},format=gray`,
+        "-f", "rawvideo", "-y", probe,
+      ]);
+      const buf = await fs.readFile(probe);
+      let sum = 0;
+      for (const v of buf) sum += v;
+      const luma = sum / buf.length;
+      if (luma > best.luma) best = { t, luma };
+    } catch {
+      // A frame that will not decode is simply not a candidate.
+    }
+  }
+  await fs.rm(probe, { force: true });
+
+  await ffmpeg(["-ss", String(best.t), "-i", master, "-frames:v", "1", "-q:v", "3", "-y", out]);
+  console.log(`[poster] chose t=${best.t}s (luma ${best.luma.toFixed(1)}/255)`);
 }
 
 /** Moves one finished aspect out of the temp dir so it outlives the job. */

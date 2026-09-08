@@ -1,0 +1,14 @@
+{
+  "templateId": "first-birthday-storybook",
+  "templateVersion": 1,
+  "language": "hi",
+  "fields": {
+    "childName": "मायरा",
+    "parentsNames": "दीपा और अरुण",
+    "eventDate": "2026-11-08",
+    "eventTime": "शाम 5:00",
+    "venue": "सिल्वर ओक बैंक्वेट, बेंगलुरु"
+  },
+  "photos": ["fixtures/photos/03.jpg","fixtures/photos/04.jpg","fixtures/photos/05.jpg","fixtures/photos/06.jpg","fixtures/photos/07.jpg","fixtures/photos/08.jpg","fixtures/photos/01.jpg","fixtures/photos/02.jpg"],
+  "aspects": ["9:16"]
+}
