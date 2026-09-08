@@ -25,7 +25,7 @@ export default function AccountChip({
     return (
       <a
         href="/api/auth/signin"
-        className="glass glass-rel tier-0 press focus-ring inline-flex items-center gap-2 rounded-full px-4 py-2 t-subhead ink-1"
+        className="panel panel-rel tier-0 press focus-ring inline-flex items-center gap-2 rounded-full px-4 py-2 t-subhead ink-1"
         style={{ ["--r" as string]: "999px", minHeight: 44 }}
       >
         <GoogleMark />
@@ -40,14 +40,14 @@ export default function AccountChip({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="glass glass-rel tier-0 press focus-ring inline-flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3 t-subhead ink-1"
+        className="panel panel-rel tier-0 press focus-ring inline-flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3 t-subhead ink-1"
         style={{ ["--r" as string]: "999px", minHeight: 44 }}
       >
         {picture ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={picture} alt="" width={28} height={28} className="rounded-full" referrerPolicy="no-referrer" />
         ) : (
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-white/15">
+          <span className="grid h-7 w-7 place-items-center rounded-full" style={{ background: "var(--color-paper-3)" }}>
             {(name ?? "?").slice(0, 1).toUpperCase()}
           </span>
         )}
@@ -57,14 +57,14 @@ export default function AccountChip({
       {open && (
         <div
           role="menu"
-          className="glass glass-rel tier-3 absolute right-0 mt-2 w-56 overflow-hidden p-2"
+          className="panel panel-rel tier-3 absolute right-0 mt-2 w-56 overflow-hidden p-2"
           style={{ ["--r" as string]: "18px" }}
         >
           <p className="px-3 py-2 t-footnote ink-3 break-all">{name}</p>
           <a
             href="/mine"
             role="menuitem"
-            className="block rounded-xl px-3 py-2.5 t-callout ink-1 hover:bg-white/10 focus-ring"
+            className="block rounded-xl px-3 py-2.5 t-callout ink-1 hover:bg-[color:var(--color-paper-3)] focus-ring"
           >
             My trailers
           </a>
@@ -73,7 +73,7 @@ export default function AccountChip({
             <button
               type="submit"
               role="menuitem"
-              className="w-full rounded-xl px-3 py-2.5 text-left t-callout ink-2 hover:bg-white/10 focus-ring"
+              className="w-full rounded-xl px-3 py-2.5 text-left t-callout ink-2 hover:bg-[color:var(--color-paper-3)] focus-ring"
             >
               Sign out
             </button>

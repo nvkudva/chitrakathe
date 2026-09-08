@@ -33,7 +33,7 @@ export default function LanguageBar({ current, basePath }: { current: Language; 
   return (
     <div
       ref={track}
-      className="glass glass-rel seg-track tier-0 inline-flex gap-1 p-1"
+      className="panel panel-rel seg-track tier-0 inline-flex gap-1 p-1"
       style={{ ["--r" as string]: "999px" }}
       role="group"
       aria-label="Language"
@@ -41,7 +41,7 @@ export default function LanguageBar({ current, basePath }: { current: Language; 
       {thumb && (
         <span
           aria-hidden="true"
-          className="seg-thumb glass tier-2 absolute inset-y-1 z-0"
+          className="seg-thumb panel tier-2 absolute inset-y-1 z-0"
           style={{
             ["--r" as string]: "999px",
             transform: `translateX(${thumb.x - 4}px)`,

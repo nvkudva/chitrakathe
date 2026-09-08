@@ -34,7 +34,7 @@ export default async function Refunds({ searchParams }: { searchParams: Promise<
   const { lang: raw } = await searchParams;
   const lang = isLanguage(raw) ? raw : "en";
   return (
-    <article lang={lang} className="glass glass-rel tier-2 max-w-2xl space-y-5 p-6 rise">
+    <article lang={lang} className="panel panel-rel tier-2 max-w-2xl space-y-5 p-6 rise">
       <h1 className="t-title-1 ink-1">Refunds and cancellations</h1>
       <LegalSummary lang={lang} points={SUMMARY} />
       <p className="t-body ink-2">

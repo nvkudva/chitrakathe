@@ -30,7 +30,8 @@
     "bg": "#0F1410",
     "ink": "#F6EFDD",
     "accent": "#C9A227",
-    "muted": "#1E4033"
+    "muted": "#1E4033",
+    "accentOnPaper": "#1E5E45"
   },
   "typography": {
     "hero": {

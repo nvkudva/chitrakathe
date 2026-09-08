@@ -5,7 +5,7 @@ export default async function Contact({ searchParams }: { searchParams: Promise<
   const { lang: raw } = await searchParams;
   const lang = isLanguage(raw) ? raw : "en";
   return (
-    <article lang={lang} className="glass glass-rel tier-2 max-w-2xl space-y-4 p-6 rise">
+    <article lang={lang} className="panel panel-rel tier-2 max-w-2xl space-y-4 p-6 rise">
       <h1 className="t-title-1 ink-1">Contact</h1>
       <p className="t-body ink-2">
         A real person answers. If a function is close and something has gone wrong, phone rather than email.

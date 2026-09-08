@@ -17,7 +17,7 @@ export default async function MyTrailers({ searchParams }: { searchParams: Promi
   const session = await currentSession();
   if (!session) {
     return (
-      <div lang={lang} className="glass glass-rel tier-2 space-y-4 p-6 rise">
+      <div lang={lang} className="panel panel-rel tier-2 space-y-4 p-6 rise">
         <h1 className="t-title-2 ink-1">{t(lang, "mine.title")}</h1>
         <p className="t-body ink-2">{t(lang, "mine.signedOut")}</p>
         <a href="/api/auth/signin?returnTo=/mine" className="btn btn-primary press focus-ring inline-flex">
@@ -37,7 +37,7 @@ export default async function MyTrailers({ searchParams }: { searchParams: Promi
     <div lang={lang} className="space-y-5 rise">
       <h1 className="t-title-1 ink-1">{t(lang, "mine.title")}</h1>
       {rows.length === 0 && (
-        <div className="glass glass-rel tier-2 space-y-3 p-6">
+        <div className="panel panel-rel tier-2 space-y-3 p-6">
           <p className="t-body ink-2">{t(lang, "mine.empty")}</p>
           <Link href="/" className="btn btn-primary press focus-ring inline-flex">
             {t(lang, "mine.pick")}
@@ -57,7 +57,7 @@ export default async function MyTrailers({ searchParams }: { searchParams: Promi
             <li key={r.id as string}>
               <Link
                 href={`/t/${r.id}?lang=${r.language}` as Route}
-                className="glass glass-rel tier-2 card-press focus-ring flex items-center justify-between gap-4 p-4"
+                className="panel panel-rel tier-2 card-press focus-ring flex items-center justify-between gap-4 p-4"
               >
                 <span className="min-w-0">
                   <span className="block t-callout ink-1 truncate">{named || title}</span>

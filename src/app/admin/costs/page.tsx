@@ -18,12 +18,14 @@ export default async function CostDashboard({ searchParams }: { searchParams: Pr
 
   const [s, jobs] = await Promise.all([costSummary(30), jobCosts(50)]);
 
+  // .admin-dark is the one screen the redesign leaves dark: a dark achromatic
+  // dashboard is right for a dashboard. globals.css keys the document off it.
   return (
-    <div className="space-y-8">
+    <div className="admin-dark space-y-8">
       <h1 className="t-title-1 ink-1">Cost and margin — last {s.windowDays} days</h1>
 
       {s.pricesStale && (
-        <p className="glass glass-rel tier-2 px-4 py-3 t-callout" style={{ color: "#ffd98a" }}>
+        <p className="panel panel-rel tier-2 px-4 py-3 t-callout" style={{ color: "#ffd98a" }}>
           Price table last checked {s.pricesCheckedOn}. Re-verify provider pricing and update
           <code className="mx-1">src/lib/cost/prices.ts</code>.
         </p>
@@ -47,7 +49,7 @@ export default async function CostDashboard({ searchParams }: { searchParams: Pr
         <h2 className="mb-3 t-overline ink-3">Spend by kind</h2>
         <div className="flex flex-wrap gap-4 text-sm">
           {Object.entries(s.byKind).map(([k, v]) => (
-            <span key={k} className="glass glass-rel tier-0 px-3 py-1.5 t-subhead ink-2">
+            <span key={k} className="panel panel-rel tier-0 px-3 py-1.5 t-subhead ink-2">
               {k} <strong className="ml-1">{rupees(v)}</strong>
             </span>
           ))}
@@ -91,7 +93,7 @@ export default async function CostDashboard({ searchParams }: { searchParams: Pr
 
 function Stat({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
   return (
-    <div className="glass glass-rel tier-2 p-4" style={highlight ? { boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--color-accent) 45%, transparent)" } : undefined}>
+    <div className="panel panel-rel tier-2 p-4" style={highlight ? { boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--color-accent) 45%, transparent)" } : undefined}>
       <p className="t-overline ink-3">{label}</p>
       <p className="mt-1 t-title-2 ink-1">{value}</p>
       {sub && <p className="mt-1 t-footnote ink-3">{sub}</p>}

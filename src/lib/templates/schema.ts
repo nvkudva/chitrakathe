@@ -135,6 +135,13 @@ export const Palette = z.object({
   ink: z.string(),
   accent: z.string(),
   muted: z.string(),
+  /**
+   * The accent as TEXT on the paper chrome (#FFFBF4), authored so it clears
+   * 4.5:1. `accent` itself stays the fill colour used inside the film, where it
+   * sits on the template's own dark grounds and would be muddy on cream.
+   * Optional: lib/theme.ts darkens `accent` as a fallback.
+   */
+  accentOnPaper: z.string().optional(),
 });
 
 export const Typography = z.object({

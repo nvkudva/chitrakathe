@@ -22,7 +22,7 @@ export default function LegalSummary({ lang, points }: { lang: Language; points:
   if (!lines?.length) return null;
 
   return (
-    <aside lang={lang} className="glass glass-rel tier-0 space-y-2 p-4">
+    <aside lang={lang} className="panel panel-rel tier-0 space-y-2 p-4">
       <ul className="space-y-2 t-body ink-1">
         {lines.map((l) => (
           <li key={l}>{l}</li>

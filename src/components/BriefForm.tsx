@@ -181,7 +181,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
       {/* ---- video language ---- */}
       <section className="space-y-3">
         <h2 className="t-subhead ink-2">{tr(lang, "form.language")}</h2>
-        <div className="glass glass-rel seg-track tier-0 inline-flex gap-1 p-1" style={{ ["--r" as string]: "999px" }}>
+        <div className="panel panel-rel seg-track tier-0 inline-flex gap-1 p-1" style={{ ["--r" as string]: "999px" }}>
           {(template.languages as Language[]).map((l) => (
             <button
               key={l}
@@ -195,8 +195,8 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
                 letterSpacing: 0,
                 ...(lang === l
                   ? {
-                      background: "color-mix(in oklab, var(--color-scene-base) 100%, white 11%)",
-                      boxShadow: "inset 0 1px 0 rgb(255 255 255 / 0.20)",
+                      background: "var(--color-paper)",
+                      boxShadow: "0 1px 2px rgb(28 21 18 / .10), inset 0 0 0 1px var(--hairline)",
                     }
                   : {}),
               }}
@@ -208,14 +208,14 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
       </section>
 
       {/* ---- brief fields ---- */}
-      <section className="glass glass-rel tier-2 space-y-5 p-5">
+      <section className="panel panel-rel tier-2 space-y-5 p-5">
         {template.fields.map((f) => (
           <div key={f.key} className="space-y-2">
             <label htmlFor={f.key} className="block t-subhead ink-2">
               {tr(lang, f.labelKey)}
               {!f.required && <span className="ink-3"> · {tr(lang, "field.optional")}</span>}
             </label>
-            <div className="glass glass-rel tier-0">
+            <div className="panel panel-rel tier-0">
               {f.type === "textarea" ? (
                 <textarea
                   id={f.key}
@@ -263,7 +263,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
           {template.photoSlots.map((role, i) => {
             const slot = slots[i]!;
             return (
-              <div key={i} className="glass glass-rel tier-0 overflow-hidden p-3">
+              <div key={i} className="panel panel-rel tier-0 overflow-hidden p-3">
                 <input
                   ref={(el) => {
                     inputs.current[i] = el;
@@ -288,7 +288,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block t-callout ink-1">{label(role, i)}</span>
-                    <span className="block t-footnote" style={{ color: slot.error ? "#ffb3a7" : "var(--ink-3)" }}>
+                    <span className="block t-footnote" style={{ color: slot.error ? "var(--color-danger)" : "var(--ink-3)" }}>
                       {slot.error ?? (slot.file ? tr(lang, "photo.replace") : tr(lang, "photo.add"))}
                     </span>
                   </span>
@@ -299,14 +299,14 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
         </div>
 
         {/* The strongest trust claim, where the parent is handing over the face. */}
-        <p className="glass glass-rel tier-0 t-footnote ink-2 p-3">{tr(lang, "photo.noFaces")}</p>
+        <p className="panel panel-rel tier-0 t-footnote ink-2 p-3">{tr(lang, "photo.noFaces")}</p>
       </section>
 
       {/* ---- delivery ---- */}
       {signedIn === false && (
-        <section className="glass glass-rel tier-2 space-y-3 p-5">
+        <section className="panel panel-rel tier-2 space-y-3 p-5">
           <h2 className="t-subhead ink-2">{tr(lang, "form.contactHeading")}</h2>
-          <div className="glass glass-rel tier-0">
+          <div className="panel panel-rel tier-0">
             <input
               type="tel"
               inputMode="tel"
@@ -319,7 +319,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
             />
           </div>
           {showEmail ? (
-            <div className="glass glass-rel tier-0">
+            <div className="panel panel-rel tier-0">
               <input
                 type="email"
                 autoComplete="email"
@@ -340,7 +340,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
       )}
 
       {error && (
-        <p role="alert" className="glass glass-rel tier-2 t-callout p-4" style={{ color: "#ffb3a7" }}>
+        <p role="alert" className="panel panel-rel tier-2 t-callout p-4" style={{ color: "var(--color-danger)" }}>
           {error}
         </p>
       )}

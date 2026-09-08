@@ -1,29 +1,51 @@
 @import "tailwindcss";
 
 /* ===========================================================================
-   Chitrakathe — Liquid Glass
-   Implements docs/design-spec.md. Read that before changing anything here.
+   Chitrakathe — Paper and turmeric
 
-   Two rules that are correctness, not taste:
-   1. Glass is a SAMPLING material. It needs the .scene layer behind it or it
-      renders as grey plastic. Never give .scene a backdrop-filter.
-   2. Indic scripts are never letter-spaced. Every type token reads
-      var(--tracking); nothing sets letter-spacing literally. Tracking a
-      Kannada conjunct renders ನಾಮಕರಣ as ನಾ ಮ ಕ ರ ಣ. Same rule the video
-      renderer enforces in src/lib/render/cards.ts.
+   The near-black "Liquid Glass" substrate is gone (docs/review/ux-tasks.md T2).
+   Glass is a sampling material and there was never anything behind it to
+   sample; worse, cream-on-black is the grammar of a condolence notice, which is
+   the wrong thing to say at a namakarana. The chrome is now invitation card
+   stock: warm paper, ink, one turmeric CTA.
+
+   Three rules that are correctness, not taste:
+   1. Indic scripts are never letter-spaced. Every type token reads a
+      --track-* variable; nothing sets letter-spacing literally. The
+      :lang(kn|hi|kok) block below overrides those tokens to 0 — they are
+      VALUES, not addends, so no negative tracking can survive the switch.
+      Tracking a Kannada conjunct renders ನಾಮಕರಣ as ನಾ ಮ ಕ ರ ಣ. Same rule the
+      video renderer enforces in src/lib/render/cards.ts.
+   2. Controls and fields use min-height, never height. Kannada line boxes are
+      taller and a fixed height clips the vowel signs.
+   3. Inputs are never below 16px, or iOS Safari zooms the viewport on focus.
+
+   Dark survives in exactly two places, and is better for being rare: the
+   .screen video bezel and the .render-stage in-progress card. Plus
+   /admin/costs, which is a dashboard and was always right — it opts in with
+   .admin-dark.
    =========================================================================== */
 
 @theme {
-  /* ---- substrate; scene-* are overwritten per template ---- */
-  --color-void: #08070a;
-  --color-scene-base: #130608;
-  --color-scene-tint: #7b1e28;
-  --color-scene-accent: #d4a017;
+  /* ---- paper substrate ---- */
+  --color-paper: #fffbf4;
+  --color-paper-2: #fff6e9;
+  --color-paper-3: #f7eddc;
+  --color-hairline: #e8dcc9;
 
-  /* ---- ink: an alpha ladder over any tier ---- */
-  --color-ink: #fbf3e4;
+  /* ---- ink ---- */
+  --color-ink: #1c1512;
+
+  /* ---- turmeric. --color-accent is a FILL; --color-accent-text is the
+         per-template text accent, darkened onto paper by lib/theme.ts. ---- */
+  --color-cta: #d4a017;
+  --color-on-cta: #241a05;
+  --color-gold-ink: #8a6a12;
   --color-accent: #d4a017;
-  --color-accent-text: #e3b53a;
+  --color-accent-text: #8a6a12;
+
+  /* errors and refusals, measured on paper */
+  --color-danger: #9e2412;
 
   /* ---- motion ---- */
   --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
@@ -43,10 +65,6 @@
 }
 
 :root {
-  --scene-tint-a: 14%;
-  --light-x: 50%;
-  --light-y: -18%;
-
   /* Per-token Latin tracking. Indic overrides these to 0 wholesale below —
      they are values, not offsets, so nothing negative can survive the switch. */
   --track-display: -0.021em;
@@ -57,23 +75,24 @@
   --tracking: 0em;
   --lh-scale: 1;
 
-  --ink-1: rgb(from var(--color-ink) r g b / 1);
-  --ink-2: rgb(from var(--color-ink) r g b / 0.74);
-  --ink-3: rgb(from var(--color-ink) r g b / 0.62);
-  --ink-4: rgb(from var(--color-ink) r g b / 0.46);
+  /* Literal inks, not an alpha ladder: on paper an alpha ladder loses contrast
+     the moment a surface tint changes underneath it, and every one of these is
+     measured against the real composited ground.
+       ink-1 17.5:1  ink-2 8.4:1  ink-3 4.8:1  (on --paper)
+     There is no fourth step. Anything lighter than --ink-3 drops under 4.5:1 on
+     paper, so --ink-4 is an alias kept for call sites, not a new tone. The dark
+     ladder could afford four; this one cannot, and legibility wins. */
+  --ink-1: #1c1512;
+  --ink-2: #57493f;
+  --ink-3: #7d6d60;
+  --ink-4: #7d6d60;
 
-  --mat-0-backdrop: blur(8px) saturate(140%);
-  --mat-0-fill: linear-gradient(180deg, rgb(0 0 0 / 0.24) 0%, rgb(0 0 0 / 0.1) 62%, rgb(0 0 0 / 0.06) 100%),
-    rgb(255 255 255 / 0.045);
-  --mat-1-backdrop: blur(24px) saturate(180%) brightness(1.06);
-  --mat-1-fill: linear-gradient(180deg, rgb(255 255 255 / 0.11) 0%, rgb(255 255 255 / 0.05) 48%, rgb(255 255 255 / 0.065) 100%),
-    color-mix(in oklab, var(--color-scene-base) 52%, transparent);
-  --mat-2-backdrop: blur(16px) saturate(150%) brightness(1.03);
-  --mat-2-fill: linear-gradient(180deg, rgb(255 255 255 / 0.13) 0%, rgb(255 255 255 / 0.075) 44%, rgb(255 255 255 / 0.09) 100%),
-    color-mix(in oklab, var(--color-scene-base) 34%, transparent);
-  --mat-3-backdrop: blur(40px) saturate(200%) brightness(1.1);
-  --mat-3-fill: linear-gradient(180deg, rgb(255 255 255 / 0.135) 0%, rgb(255 255 255 / 0.065) 40%, rgb(255 255 255 / 0.085) 100%),
-    color-mix(in oklab, var(--color-scene-base) 44%, transparent);
+  --hairline: var(--color-hairline);
+  --well-line: #e4d6bf;
+
+  /* One shadow recipe for every raised surface. */
+  --lift-1: 0 1px 2px rgb(28 21 18 / 0.06), 0 8px 24px -14px rgb(28 21 18 / 0.18);
+  --lift-2: 0 2px 4px rgb(28 21 18 / 0.07), 0 18px 44px -20px rgb(28 21 18 / 0.24);
 }
 
 /* Indic: tracking off, line boxes looser. Correctness — see the header. */
@@ -90,29 +109,15 @@
   --lh-scale: 1.1;
 }
 
-/* ---------------------------------------------------------------------------
-   Fallback ladder. Three independent gates, one geometry. A user must not be
-   able to tell which path they got by anything except translucency, so only
-   the fill changes — radii, rim, shadow and spacing are identical.
-   The flat fill is never LIGHTER than the glass it replaces, so contrast can
-   only improve on the fallback path.
-   --------------------------------------------------------------------------- */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root { --glass: 0; }
-}
-@media (prefers-reduced-transparency: reduce) {
-  :root { --glass: 0; }
-}
-html[data-glass="off"] { --glass: 0; }
-
 html {
-  background: var(--color-void);
+  background: var(--color-paper);
   -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
+  background: var(--color-paper);
   color: var(--ink-1);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui,
     "Noto Sans", "Noto Sans Kannada", "Noto Sans Devanagari", sans-serif;
@@ -122,185 +127,128 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---- the scene: the only saturated colour in the app ---- */
-.scene {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-color: var(--color-scene-base);
-  background-image:
-    radial-gradient(112% 74% at 50% -12%,
-      color-mix(in oklab, var(--color-scene-tint) var(--scene-tint-a), transparent) 0%, transparent 62%),
-    radial-gradient(84% 60% at 88% 104%,
-      color-mix(in oklab, var(--color-scene-tint) calc(var(--scene-tint-a) * 0.55), transparent) 0%, transparent 70%),
-    radial-gradient(70% 52% at 4% 88%,
-      color-mix(in oklab, var(--color-scene-accent) 6%, transparent) 0%, transparent 66%),
-    radial-gradient(120% 80% at 50% -14%,
-      rgb(255 255 255 / 0.035) 0%, rgb(255 255 255 / 0.010) 34%, transparent 58%),
-    radial-gradient(150% 110% at 50% 118%, rgb(0 0 0 / 0.60) 0%, transparent 60%);
-}
-
-/* Grain, as SVG turbulence rather than a base64 PNG: a noise tile that reads
-   well is ~16 KB as PNG and ~300 bytes as this. Kills gradient banding on
-   8-bit Android panels, which is very visible on a near-black field. */
-.scene::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 140px 140px;
-}
-
-.app { position: relative; z-index: 1; }
+.app { position: relative; }
 
 /* ---------------------------------------------------------------------------
-   Glass tiers
+   Surfaces. Opaque paper, a hairline, and one shadow — no backdrop-filter
+   anywhere, so there is no fallback ladder and no device gate to maintain.
+   .panel carries no `position`: it used to be `relative`, which is unlayered
+   and beats Tailwind's sticky/absolute utilities. Anything that needs a
+   positioned ancestor uses .panel-rel.
    --------------------------------------------------------------------------- */
-.glass {
-  /* No `position` here. It used to be `relative`, which is unlayered and so
-     beats Tailwind's `sticky`/`absolute` utilities: the nav silently stopped
-     being sticky and the segmented-control thumb fell back into flow. The
-     pseudo-elements need *a* positioned ancestor, so anything using .glass
-     must carry a position utility — every call site does, or uses .glass-rel. */
+.panel {
   isolation: isolate;
   border-radius: var(--r, var(--radius-card));
 }
+.panel-rel { position: relative; }
+
+/* Aliases. The class used to be .glass, which is now a lie, but JobView.tsx is
+   being rewritten in parallel (T5) and is not ours to edit — so the old names
+   keep working until that lands. Delete these two rules once nothing uses them:
+   `grep -rn "glass" src/`. */
+.glass { isolation: isolate; border-radius: var(--r, var(--radius-card)); }
 .glass-rel { position: relative; }
-.glass > * { position: relative; z-index: 1; }
 
-/* (a) the rim — a masked gradient ring, not a border. Top arc catches the
-   light, sides go nearly black, bottom picks up a weak bounce. The 2.7:1
-   top:bottom ratio is what stops it reading as a fake bevel. */
-.glass::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(180deg,
-    rgb(255 255 255 / 0.42) 0%,
-    rgb(255 255 255 / 0.13) 18%,
-    rgb(255 255 255 / 0.10) 52%,
-    rgb(255 255 255 / 0.115) 82%,
-    rgb(255 255 255 / 0.16) 100%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: 2;
-  transition: background var(--dur-quick) var(--ease-out-soft);
-}
-
-/* (b) body sheen — what a curved top face does to a distant light */
-.glass::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(140% 100% at var(--light-x) var(--light-y),
-    rgb(255 255 255 / 0.1) 0%, rgb(255 255 255 / 0.03) 26%, transparent 46%);
-}
-
+/* tier-0 — a recessed well (inputs, chips, segmented tracks).
+   The well is darker than the page, so tertiary ink steps down one notch
+   inside it: #7D6D60 is 4.81:1 on --paper but only 4.28:1 on --paper-3, and
+   placeholders and inactive segment labels live exactly there. */
 .tier-0 {
+  --ink-3: #786858;
+  --ink-4: #786858;
   --r: var(--radius-field);
-  background: var(--mat-0-fill);
-  -webkit-backdrop-filter: var(--mat-0-backdrop);
-  backdrop-filter: var(--mat-0-backdrop);
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.45), inset 0 -1px 0 rgb(255 255 255 / 0.07),
-    inset 0 0 0 1px rgb(255 255 255 / 0.11), 0 1px 0 rgb(255 255 255 / 0.045);
+  background: var(--color-paper-3);
+  border: 1px solid var(--well-line);
+  box-shadow: inset 0 1px 2px rgb(28 21 18 / 0.07);
 }
-/* recessed: the light is inverted — dark on top, faint bounce below */
-.tier-0::before {
-  background: linear-gradient(180deg,
-    rgb(255 255 255 / 0.055) 0%, rgb(255 255 255 / 0.075) 40%, rgb(255 255 255 / 0.20) 100%);
-}
-.tier-0::after { background: none; }
 
+/* tier-1 — the site header. Opaque, not translucent: with the blur gone a
+   translucent sticky header is just content bleeding through itself. */
 .tier-1 {
   --r: 0px;
-  background: var(--mat-1-fill);
-  -webkit-backdrop-filter: var(--mat-1-backdrop);
-  backdrop-filter: var(--mat-1-backdrop);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 28px -10px rgb(0 0 0 / 0.75);
-  border-bottom: 1px solid rgb(255 255 255 / 0.12);
+  background: var(--color-paper);
+  border-bottom: 1px solid var(--hairline);
 }
-.tier-1::before { display: none; }
 
+/* tier-2 — the card */
 .tier-2 {
   --r: var(--radius-card);
-  background: var(--mat-2-fill);
-  -webkit-backdrop-filter: var(--mat-2-backdrop);
-  backdrop-filter: var(--mat-2-backdrop);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), inset 0 -1px 0 rgb(0 0 0 / 0.3),
-    0 8px 24px -12px rgb(0 0 0 / 0.7), 0 1px 2px rgb(0 0 0 / 0.4);
-  contain: paint;
+  background: var(--color-paper-2);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--lift-1);
 }
 
+/* tier-3 — the sheet: a card that has been picked up */
 .tier-3 {
   --r: var(--radius-sheet);
-  background: var(--mat-3-fill);
-  -webkit-backdrop-filter: var(--mat-3-backdrop);
-  backdrop-filter: var(--mat-3-backdrop);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24), inset 0 -1px 0 rgb(0 0 0 / 0.36),
-    0 24px 64px -16px rgb(0 0 0 / 0.82), 0 2px 8px rgb(0 0 0 / 0.5);
+  background: var(--color-paper-2);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--lift-2);
 }
-.tier-3::before { padding: 1.5px; }
 
-/* ---- the opaque path. No backdrop-filter is emitted at all: blur(0) still
-   allocates the backdrop texture, which is the cost we are avoiding. ---- */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root {
-    --mat-0-backdrop: none;
-    --mat-1-backdrop: none;
-    --mat-2-backdrop: none;
-    --mat-3-backdrop: none;
-  }
-  .tier-0 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 5%); }
-  .tier-1 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 11%); }
-  .tier-2 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 12%); }
-  .tier-3 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 17%); }
-}
-@media (prefers-reduced-transparency: reduce) {
-  :root {
-    --mat-0-backdrop: none;
-    --mat-1-backdrop: none;
-    --mat-2-backdrop: none;
-    --mat-3-backdrop: none;
-  }
-  .tier-0 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 5%); }
-  .tier-1 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 11%); }
-  .tier-2 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 12%); }
-  .tier-3 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 17%); }
-}
-html[data-glass="off"] {
-  /* Nulling the token, not the property, is the whole point: writing
-     `backdrop-filter: none` here did nothing, because Lightning CSS drops the
-     unprefixed declaration and -webkit-backdrop-filter does not override
-     backdrop-filter in Chromium. The cheap-Android path was paying for every
-     blur and getting an opaque fill on top of it. */
-  --mat-0-backdrop: none;
-  --mat-1-backdrop: none;
-  --mat-2-backdrop: none;
-  --mat-3-backdrop: none;
-}
-html[data-glass="off"] .tier-0 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 5%); }
-html[data-glass="off"] .tier-1 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 11%); }
-html[data-glass="off"] .tier-2 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 12%); }
-html[data-glass="off"] .tier-3 { background: color-mix(in oklab, var(--color-scene-base) 100%, white 17%); }
+/* ---------------------------------------------------------------------------
+   The two dark objects.
+   --------------------------------------------------------------------------- */
 
-/* Budget: at most 3 composited blurs per screen. On a phone the nav and one
-   sheet own them, so cards go flat. */
-@media (max-width: 479px) {
-  .tier-2 {
-    --mat-2-backdrop: none;
-    background: color-mix(in oklab, var(--color-scene-base) 100%, white 12%);
-  }
+/* The video bezel. A lit screen needs a dark surround or the letterbox melts
+   into the page and the video stops being an object. */
+.screen {
+  background: #141014;
+  padding: 8px;
+  border-radius: 26px;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.07),
+    0 2px 4px rgb(28 21 18 / 0.12),
+    0 28px 60px -28px rgb(28 21 18 / 0.45);
+}
+.screen video,
+.screen img {
+  display: block;
+  width: 100%;
+  border-radius: 18px;
+  background: #141014;
+}
+
+/* The render-in-progress card: a small cinema, so the wait is the one dark
+   moment in the funnel. */
+.render-stage {
+  --ink-1: #fbf3e4;
+  --ink-2: rgb(251 243 228 / 0.82);
+  --ink-3: rgb(251 243 228 / 0.68);
+  --ink-4: rgb(251 243 228 / 0.68);
+  background: #141014;
+  color: var(--ink-1);
+  border-radius: var(--radius-sheet);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.07),
+    0 28px 60px -28px rgb(28 21 18 / 0.45);
+}
+
+/* ---------------------------------------------------------------------------
+   /admin/costs stays dark. It is a dashboard; a dark achromatic dashboard is
+   the right answer for a dashboard, and it is the one screen nobody objected
+   to. It opts in by putting .admin-dark on its root, and :has lifts that to
+   the document ground so the page does not sit as a dark slab on cream.
+   --------------------------------------------------------------------------- */
+html:has(.admin-dark) {
+  --color-paper: #0d0b10;
+  --color-paper-2: #17141b;
+  --color-paper-3: #121016;
+  --color-hairline: #2a2531;
+  --hairline: #2a2531;
+  --well-line: #2a2531;
+  --ink-1: #f4eee6;
+  --ink-2: rgb(244 238 230 / 0.78);
+  --ink-3: rgb(244 238 230 / 0.64);
+  --ink-4: rgb(244 238 230 / 0.5);
+  --color-accent-text: #e3b53a;
+  --lift-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+  --lift-2: 0 2px 8px rgb(0 0 0 / 0.5), 0 24px 64px -16px rgb(0 0 0 / 0.8);
+  background: #0d0b10;
+}
+html:has(.admin-dark) body {
+  background: #0d0b10;
+  color: var(--ink-1);
 }
 
 /* ---------------------------------------------------------------------------
@@ -328,6 +276,7 @@ html[data-glass="off"] .tier-3 { background: color-mix(in oklab, var(--color-sce
 .ink-2 { color: var(--ink-2); }
 .ink-3 { color: var(--ink-3); }
 .ink-4 { color: var(--ink-4); }
+.gold-ink { color: var(--color-gold-ink); }
 
 /* ---------------------------------------------------------------------------
    Controls
@@ -335,7 +284,7 @@ html[data-glass="off"] .tier-3 { background: color-mix(in oklab, var(--color-sce
 .press {
   transition: transform var(--dur-fast) var(--ease-out-soft), filter var(--dur-fast) var(--ease-out-soft);
 }
-.press:active { transform: scale(0.96); filter: brightness(1.06); }
+.press:active { transform: scale(0.96); filter: brightness(0.97); }
 
 .btn {
   display: inline-flex;
@@ -355,16 +304,16 @@ html[data-glass="off"] .tier-3 { background: color-mix(in oklab, var(--color-sce
      height clips the vowel signs above and below the baseline. */
 }
 .btn-primary {
-  color: #17110a;
-  background: linear-gradient(180deg,
-    color-mix(in oklab, var(--color-accent) 100%, white 14%) 0%,
-    var(--color-accent) 52%,
-    color-mix(in oklab, var(--color-accent) 100%, black 10%) 100%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.4), inset 0 -1px 0 rgb(0 0 0 / 0.18),
-    0 6px 20px -8px color-mix(in oklab, var(--color-accent) 60%, transparent);
+  color: var(--color-on-cta);
+  background: var(--color-cta);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.35) inset, 0 8px 20px -12px rgb(140 100 10 / 0.7);
 }
-.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-secondary { color: var(--ink-1); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary {
+  color: var(--ink-1);
+  background: var(--color-paper-2);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
 
 .field {
   width: 100%;
@@ -386,7 +335,7 @@ html[data-glass="off"] .tier-3 { background: color-mix(in oklab, var(--color-sce
 .focus-ring:focus-visible,
 .field:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 45%, transparent);
+  box-shadow: 0 0 0 3px var(--color-paper), 0 0 0 5px var(--color-gold-ink);
 }
 
 /* Segmented control: the thumb animates width as well as position, because
@@ -407,12 +356,7 @@ html[data-glass="off"] .tier-3 { background: color-mix(in oklab, var(--color-sce
 }
 .card-press:active { transform: scale(0.972); }
 @media (hover: hover) {
-  .card-press:hover { transform: translateY(-2px); }
-  .card-press:hover::before {
-    background: linear-gradient(180deg,
-      rgb(255 255 255 / 0.5) 0%, rgb(255 255 255 / 0.14) 18%,
-      rgb(255 255 255 / 0.04) 52%, rgb(255 255 255 / 0.06) 82%, rgb(255 255 255 / 0.16) 100%);
-  }
+  .card-press:hover { transform: translateY(-2px); box-shadow: var(--lift-2); }
 }
 
 /* Progress: scaleX, not width — a width transition on a 2px bar relayouts on

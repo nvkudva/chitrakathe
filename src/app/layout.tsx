@@ -13,47 +13,25 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#130608",
+  themeColor: "#FFFBF4",
   width: "device-width",
   initialScale: 1,
-  // The scene runs edge to edge behind the notch and the home indicator.
+  // The page runs edge to edge behind the notch and the home indicator.
   viewportFit: "cover",
 };
-
-/**
- * Decides before first paint whether this device gets glass.
- *
- * backdrop-filter on a sub-₹15,000 Android GPU takes a slow readback path and
- * drops a scrolling card grid to ~20fps. Running this inline avoids a flash of
- * glass that then disappears.
- *
- * RAM is the signal that matters: compositing a blurred backdrop allocates a
- * full-surface texture, and the cheap bracket is 2-4 GB. Core count is a poor
- * proxy on its own — plenty of capable 8 GB laptops and mid-range phones report
- * 4 — so cores only disqualify a device at 2 or fewer, which no current phone
- * we care about exceeds while also having enough memory.
- */
-const GLASS_GATE = `(function(){try{var n=navigator,w=window;
-if((n.deviceMemory&&n.deviceMemory<=4)||(n.hardwareConcurrency&&n.hardwareConcurrency<=2)||
-(n.connection&&n.connection.saveData)||(w.matchMedia&&w.matchMedia("(update: slow)").matches))
-document.documentElement.setAttribute("data-glass","off")}catch(e){}})()`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await currentSession();
 
   return (
     <html lang="en-IN">
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: GLASS_GATE }} />
-      </head>
       <body>
-        <div className="scene" aria-hidden="true" />
         <div className="app min-h-dvh flex flex-col">
-          <header className="tier-1 glass sticky top-0 z-40" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+          <header className="tier-1 panel sticky top-0 z-40" style={{ paddingTop: "env(safe-area-inset-top)" }}>
             <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-5 py-3">
               <a href="/" className="focus-ring rounded-lg px-1 flex items-baseline gap-2" style={{ minHeight: 44, alignItems: "center" }}>
                 {/* No tracking on the Kannada wordmark: it splits ತ್ರ. */}
-                <span lang="kn" className="t-title-3" style={{ color: "var(--color-accent-text)", letterSpacing: 0 }}>
+                <span lang="kn" className="t-title-3 gold-ink" style={{ letterSpacing: 0 }}>
                   ಚಿತ್ರಕಥೆ
                 </span>
                 <span className="t-caption ink-3">chitrakathe</span>
