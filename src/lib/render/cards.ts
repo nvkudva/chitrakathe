@@ -3,6 +3,16 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { config } from "../config";
 import { SIZES, FPS } from "./motion";
+import {
+  ANIM_MS,
+  CARD_GEOMETRY as GEO,
+  cardAnimationName,
+  cardFontStack,
+  cardGround,
+  cardScale,
+  cardStyles,
+  isLatinScript,
+} from "./cardStyles";
 import type { Aspect, Script, Template, TextSlot } from "../templates/schema";
 
 /**
@@ -22,8 +32,12 @@ import type { Aspect, Script, Template, TextSlot } from "../templates/schema";
  * bytes every time.
  */
 
-/** Every line animates for this long; used to size the capture window. */
-export const ANIM_MS = 900;
+/**
+ * Every line animates for this long; used to size the capture window.
+ * Re-exported: it is a property of the card look, which lives in cardStyles.ts
+ * so the browser preview can read the same numbers.
+ */
+export { ANIM_MS };
 
 let browser: Browser | null = null;
 
@@ -151,49 +165,33 @@ export async function renderCardFrames(spec: CardSpec, outDir: string): Promise<
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function cardHtml(spec: CardSpec, size: { w: number; h: number }): string {
+/**
+ * The card as an HTML document.
+ *
+ * Every style decision in here comes from `cardStyles.ts`, which the live
+ * preview on the brief form reads too. Keep it that way: a value inlined back
+ * into this function is a value the family is shown wrong.
+ */
+export function cardHtml(spec: CardSpec, size: { w: number; h: number }): string {
   const { template: t, script } = spec;
   const pal = t.palette;
-  const hero = t.typography.hero[script] ?? "Noto Serif";
-  const body = t.typography.body[script] ?? "Noto Sans";
-  const scale = size.h / 1920; // storyboard sizes are authored against 1080x1920
-
-  // Indic scripts are shaped as connected clusters; adding tracking splits a
-  // word into loose glyphs (ನಾ ಮ ಕ ರ ಣ instead of ನಾಮಕರಣ). Latin keeps its tracking.
-  const isLatin = script === "latin";
-  const track = (latin: string) => (isLatin ? latin : "0");
-
-  const styleFor = (s: TextSlot["style"]) => {
-    switch (s) {
-      case "hero":
-        return { family: hero, size: t.typography.heroSize, weight: 700, ls: "-0.01em", color: pal.ink };
-      case "title":
-        return { family: hero, size: t.typography.titleSize, weight: 600, ls: track("0.10em"), color: pal.ink };
-      case "subtitle":
-        return { family: body, size: Math.round(t.typography.bodySize * 1.15), weight: 500, ls: track("0.22em"), color: pal.accent };
-      case "lower_third":
-        return { family: hero, size: Math.round(t.typography.titleSize * 0.8), weight: 600, ls: "0", color: pal.ink };
-      case "caption":
-        return { family: body, size: Math.round(t.typography.bodySize * 0.88), weight: 400, ls: track("0.18em"), color: pal.accent };
-      default:
-        return { family: body, size: t.typography.bodySize, weight: 400, ls: track("0.02em"), color: pal.ink };
-    }
-  };
+  const scale = cardScale(size.h); // storyboard sizes are authored against 1080x1920
+  const isLatin = isLatinScript(script);
 
   const items = spec.lines
     .filter((l) => l.text.trim().length > 0)
     .map((l, i) => {
-      const st = styleFor(l.slot.style);
-      const anim = l.slot.style === "hero" ? "heroIn" : l.slot.style === "title" ? "titleIn" : "lineIn";
+      const st = cardStyles(t, script, l.slot.style);
+      const anim = cardAnimationName(l.slot.style);
       return `<div class="line l${i}" style="
-        font-family:'${st.family}', system-ui, sans-serif;
+        font-family:${cardFontStack(st.family)};
         font-size:${Math.round(st.size * scale)}px;
         font-weight:${st.weight};
         letter-spacing:${st.ls};
         color:${st.color};
         text-align:${l.slot.align};
         align-self:${l.slot.align === "left" ? "flex-start" : l.slot.align === "right" ? "flex-end" : "center"};
-        animation:${anim} ${ANIM_MS}ms cubic-bezier(.22,1.2,.36,1) ${Math.round(l.slot.delay * 1000)}ms both;
+        animation:${anim} ${ANIM_MS}ms ${GEO.ease} ${Math.round(l.slot.delay * 1000)}ms both;
       ">${esc(l.text)}</div>`;
     })
     .join("\n");
@@ -206,19 +204,19 @@ function cardHtml(spec: CardSpec, size: { w: number; h: number }): string {
   .stage{
     width:100%;height:100%;display:flex;flex-direction:column;
     justify-content:${bottomAnchored ? "flex-end" : "center"};
-    gap:${Math.round(28 * scale)}px;
-    padding:${Math.round(96 * scale)}px ${Math.round(88 * scale)}px ${Math.round((bottomAnchored ? 180 : 96) * scale)}px;
-    ${spec.transparent ? "" : `background:radial-gradient(120% 70% at 50% 45%, ${pal.muted}22 0%, ${pal.bg} 70%);`}
+    gap:${Math.round(GEO.gap * scale)}px;
+    padding:${Math.round(GEO.padTop * scale)}px ${Math.round(GEO.padX * scale)}px ${Math.round((bottomAnchored ? GEO.padBottomAnchored : GEO.padBottom) * scale)}px;
+    ${spec.transparent ? "" : `background:${cardGround(t)};`}
   }
   .line{
-    line-height:1.18;
-    text-shadow:0 ${Math.round(4 * scale)}px ${Math.round(30 * scale)}px rgba(0,0,0,.8);
+    line-height:${GEO.lineHeight};
+    text-shadow:0 ${Math.round(GEO.shadowY * scale)}px ${Math.round(GEO.shadowBlur * scale)}px rgba(0,0,0,.8);
     white-space:pre-wrap;width:100%;
     /* Long venue and address lines must wrap, not overflow the frame. */
     overflow-wrap:break-word;text-wrap:balance;
   }
-  @keyframes lineIn{from{opacity:0;transform:translateY(${Math.round(34 * scale)}px)}to{opacity:1;transform:none}}
-  @keyframes titleIn{from{opacity:0;letter-spacing:${isLatin ? ".42em" : "0"}}to{opacity:1;letter-spacing:${isLatin ? ".10em" : "0"}}}
+  @keyframes lineIn{from{opacity:0;transform:translateY(${Math.round(GEO.lineInShift * scale)}px)}to{opacity:1;transform:none}}
+  @keyframes titleIn{from{opacity:0;letter-spacing:${isLatin ? GEO.titleTrackFrom : "0"}}to{opacity:1;letter-spacing:${isLatin ? GEO.titleTrackTo : "0"}}}
   /* The reveal: scale up past 1.0 and settle. See prd.md 6.1 shot 9. */
   @keyframes heroIn{
     0%{opacity:0;transform:scale(.92)}

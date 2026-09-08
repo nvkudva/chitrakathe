@@ -3,19 +3,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { t as tr } from "@/lib/i18n/ui";
-import type { Language, PhotoRole } from "@/lib/templates/schema";
+import type { Language, PhotoRole, Template } from "@/lib/templates/schema";
 import { GoogleMark } from "./AccountChip";
+import StoryboardPreview, { type PreviewFocus } from "./StoryboardPreview";
 
 type Props = {
   initialLang?: Language;
   priceLabel: string;
-  template: {
-    id: string;
-    fields: { key: string; labelKey: string; type: string; required: boolean; maxLength: number }[];
-    photosRequired: { min: number; max: number };
-    photoSlots: PhotoRole[];
-    languages: string[];
-  };
+  /**
+   * The whole template, not a projection of it. The live preview needs the
+   * palette, the typography and the storyboard itself, and a second narrower
+   * shape here would drift from the one the renderer reads.
+   */
+  template: Template;
 };
 
 type Slot = { file: File | null; url: string | null; error: string | null };
@@ -33,6 +33,8 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  /** Which field or photo the family last touched; the preview follows it. */
+  const [focus, setFocus] = useState<PreviewFocus | null>(null);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -61,6 +63,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
   async function pick(i: number, file: File | undefined) {
     if (!file) return;
     const problem = await inspect(file);
+    if (!problem) setFocus({ kind: "photo", index: i });
     setSlots((prev) => {
       const next = [...prev];
       const old = next[i]!;
@@ -177,12 +180,28 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
   );
 
   return (
-    <form onSubmit={submit} className="space-y-8">
+    /*
+     * One grid, two placements. On a phone the preview is first in the DOM and
+     * sticks under the header; at >=1024px it moves to the right column, which
+     * is dead space today. Explicit row/column starts, so the DOM order that
+     * mobile needs does not decide the desktop layout.
+     */
+    <form onSubmit={submit} className="lg:grid lg:grid-cols-[minmax(0,1fr)_292px] lg:gap-8">
+      <StoryboardPreview
+        className="mb-7 lg:col-start-2 lg:row-start-1 lg:mb-0"
+        template={template}
+        lang={lang}
+        fields={fields}
+        photos={slots.map((s) => s.url)}
+        focus={focus}
+      />
+
+      <div className="space-y-8 lg:col-start-1 lg:row-start-1">
       {/* ---- video language ---- */}
       <section className="space-y-3">
         <h2 className="t-subhead ink-2">{tr(lang, "form.language")}</h2>
         <div className="panel panel-rel seg-track tier-0 inline-flex gap-1 p-1" style={{ ["--r" as string]: "999px" }}>
-          {(template.languages as Language[]).map((l) => (
+          {(Object.keys(template.name) as Language[]).map((l) => (
             <button
               key={l}
               type="button"
@@ -223,6 +242,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
                   required={f.required}
                   value={fields[f.key] ?? ""}
                   onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })}
+                  onFocus={() => setFocus({ kind: "field", key: f.key })}
                   className="field"
                   style={{ minHeight: 84, resize: "vertical", maxHeight: "40vh", overflow: "hidden" }}
                   ref={(el) => {
@@ -241,6 +261,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
                   required={f.required}
                   value={fields[f.key] ?? ""}
                   onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })}
+                  onFocus={() => setFocus({ kind: "field", key: f.key })}
                   className="field"
                 />
               )}
@@ -358,6 +379,7 @@ export default function BriefForm({ template, initialLang = "en", priceLabel }: 
         <p className="text-center t-footnote ink-3">
           {tr(lang, "gallery.priceNote").replace("{price}", priceLabel)}
         </p>
+      </div>
       </div>
     </form>
   );

@@ -35,17 +35,12 @@ export default async function CreatePage({
         </p>
       </header>
 
-      <BriefForm
-        initialLang={lang}
-        priceLabel={rupees(config().PRICE_LAUNCH_PAISE)}
-        template={{
-          id: template.id,
-          fields: template.fields,
-          photosRequired: template.photosRequired,
-          photoSlots: template.photoSlots,
-          languages: Object.keys(template.name),
-        }}
-      />
+      {/*
+        The whole template crosses to the client: the live storyboard preview
+        renders the real reveal card, so it needs the palette, the typography
+        and the shots. It is authored JSON and already fully serialisable.
+      */}
+      <BriefForm initialLang={lang} priceLabel={rupees(config().PRICE_LAUNCH_PAISE)} template={template} />
     </div>
   );
 }

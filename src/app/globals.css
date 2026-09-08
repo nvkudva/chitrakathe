@@ -376,3 +376,117 @@ html:has(.admin-dark) body {
   }
   .press:active, .card-press:active { transform: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   Storyboard preview (docs/review/ux-tasks.md T3, dev-backlog Tier 1 #3).
+
+   The family's film, live, while they fill the brief. It is a film frame, so
+   it is the third dark object on the page and it wears the same .screen bezel
+   the delivery video does. The card inside is laid out at its authored
+   1080x1920 and scaled by JS — the geometry is the renderer's, not a second
+   set of numbers.
+
+   Phone: sticky under the site header, and hard-capped so it can never eat
+   more than ~38svh of a 2900px form. The frame's WIDTH is derived from that
+   height budget, so it shrinks on a short phone instead of overflowing.
+   Desktop: a sticky right-hand column, which also fills the dead right half
+   of the create page.
+   --------------------------------------------------------------------------- */
+/* Which box is sticky flips at the breakpoint, and both halves are load-bearing.
+   On a phone the <aside> is a short block in the form's flow: it must be the
+   sticky box itself, because an inner div's containing block would be the
+   aside, which is exactly as tall as the preview and leaves nowhere to stick.
+   On desktop the aside is a grid item stretched down the whole row, so the
+   aside can no longer move — the inner row becomes the sticky box instead. */
+.sb-hold {
+  position: sticky;
+  /* Clears the sticky site header (44px control + 2x12px padding + hairline). */
+  top: calc(69px + env(safe-area-inset-top));
+  z-index: 30;
+  padding-bottom: 12px;
+  background: var(--color-paper);
+}
+.sb-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.sb-bezel { flex: none; }
+.sb-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  /* Derived from the height budget, never from a percentage: the bezel is a
+     shrink-to-fit flex item on a phone, so a percentage width here would
+     resolve against its own content and collapse to zero.
+     60px = the bezel's 2x8px padding + the row's breathing room. */
+  width: min(168px, calc((38svh - 60px) * 9 / 16));
+  aspect-ratio: 9 / 16;
+}
+.sb-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sb-scrim { position: absolute; inset: 0; }
+.sb-stage-clip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+.sb-stage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* Mirrors .line in src/lib/render/cards.ts. */
+.sb-line {
+  line-height: 1.18;
+  white-space: pre-wrap;
+  width: 100%;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+.sb-legend { min-width: 0; display: grid; gap: 4px; align-content: center; }
+
+/* On a phone the preview sits over the top of the form, and the browser scrolls
+   a focused field to y=0 — underneath it. Push the scroll target clear. */
+@media (max-width: 1023px) {
+  .field { scroll-margin-top: calc(38svh + 60px); }
+}
+
+/* The renderer's own keyframes. --sb-track-* is 0 under Indic: a VALUE, never
+   an addend, so a Kannada title fades in instead of unpacking its conjuncts. */
+@keyframes sb-lineIn {
+  from { opacity: 0; transform: translateY(var(--sb-shift, 34px)); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sb-titleIn {
+  from { opacity: 0; letter-spacing: var(--sb-track-from, 0); }
+  to { opacity: 1; letter-spacing: var(--sb-track-to, 0); }
+}
+@keyframes sb-heroIn {
+  0% { opacity: 0; transform: scale(0.92); }
+  60% { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (min-width: 1024px) {
+  .sb-hold {
+    position: static;
+    z-index: auto;
+    padding-bottom: 0;
+    background: transparent;
+  }
+  .sb-row {
+    display: block;
+    position: sticky;
+    top: 96px;
+  }
+  .sb-frame { width: 100%; }
+  .sb-legend { margin-top: 12px; }
+}

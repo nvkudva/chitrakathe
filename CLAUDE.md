@@ -29,7 +29,12 @@ the stuff that is easy to break.
   Devanagari conjuncts broken or as tofu. Title cards go through headless
   Chromium for this reason, not for polish.
 - **Never letter-space Indic.** Tracking splits ನಾಮಕರಣ into ನಾ ಮ ಕ ರ ಣ.
-  `cards.ts` gates every `letter-spacing` on `script === "latin"`.
+  `cardStyles.ts` gates every `letter-spacing` through `track()`, which returns
+  `"0"` off Latin. This file used to claim that was already true of `cards.ts`;
+  it was not — `hero` carried a flat `-0.01em` on every script, so the name
+  reveal, the one frame the whole trailer builds to, was tracked in Kannada.
+  Negative tracking tightens instead of splitting, which is why it survived
+  two design reviews. If you add a style, route it through `track()`.
 - **`zoompan` jitters at small zoom deltas** because it quantises per frame.
   `motion.ts` oversamples 2x to hide it. Do not "simplify" that away.
 - **A filtergraph label is consumed once.** Splitting the voiceover for the

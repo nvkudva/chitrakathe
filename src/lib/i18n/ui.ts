@@ -7,6 +7,9 @@ import type { Language } from "../templates/schema";
 type Bundle = Record<string, string>;
 
 const en: Bundle = {
+  // The live storyboard preview on the brief form (ux-tasks.md T3).
+  "preview.live": "Live preview",
+  "preview.hint": "Your trailer, as you fill this in.",
   "app.name": "Chitrakathe",
   "app.tagline": "A trailer for your family function. Minutes, not days.",
   "gallery.heading": "Pick a template",
@@ -111,6 +114,8 @@ export function isLanguage(v: string | undefined): v is Language {
 
 const kn: Bundle = {
   ...en,
+  "preview.live": "ನೇರ ಮುನ್ನೋಟ",
+  "preview.hint": "ನೀವು ಭರ್ತಿ ಮಾಡುತ್ತಿದ್ದಂತೆ ನಿಮ್ಮ ಟ್ರೇಲರ್.",
   "app.tagline": "ನಿಮ್ಮ ಕುಟುಂಬದ ಸಮಾರಂಭಕ್ಕೊಂದು ಟ್ರೈಲರ್. ದಿನಗಳಲ್ಲ, ನಿಮಿಷಗಳಲ್ಲಿ.",
   "gallery.heading": "ಟೆಂಪ್ಲೇಟ್ ಆರಿಸಿ",
   "gallery.watch": "ಪೂರ್ತಿ {n} ಸೆಕೆಂಡ್ ನೋಡಿ",
@@ -205,6 +210,8 @@ const kn: Bundle = {
 
 const hi: Bundle = {
   ...en,
+  "preview.live": "लाइव झलक",
+  "preview.hint": "जैसे-जैसे आप भरते हैं, आपका ट्रेलर।",
   "app.tagline": "आपके पारिवारिक समारोह का ट्रेलर। दिनों में नहीं, मिनटों में।",
   "gallery.heading": "टेम्पलेट चुनें",
   "gallery.watch": "पूरे {n} सेकंड देखिए",
@@ -299,6 +306,8 @@ const hi: Bundle = {
 
 const kok: Bundle = {
   ...en,
+  "preview.live": "लायव्ह झलक",
+  "preview.hint": "तुमी भरतात तसो तुमचो ट्रेलर.",
   "app.tagline": "तुमच्या कुटुंबाच्या समारंभाचो ट्रेलर. दिसांनी न्हय, मिनटांनी.",
   "gallery.heading": "टेम्पलेट वेंचात",
   "gallery.watch": "सगळीं {n} सेकंदां पळयात",
