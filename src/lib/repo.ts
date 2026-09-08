@@ -18,6 +18,7 @@ export type JobRow = {
   degraded_shots: string[];
   duration_seconds: string | null;
   error: string | null;
+  started_at: string | null;
 };
 
 export type EventRow = {

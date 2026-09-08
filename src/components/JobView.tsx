@@ -17,6 +17,10 @@ type Job = {
   watchable: boolean;
   /** The family's own headline — the child's or couple's name. */
   title: string | null;
+  /** Their uploaded photos, to show while the render runs. */
+  photos: string[];
+  /** Seconds remaining, from a rolling median of recent renders. */
+  etaSeconds: number | null;
   signedIn: boolean;
   owned: boolean;
   outputs: { aspect: string; previewUrl: string; posterUrl: string | null }[];
@@ -110,24 +114,30 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
   if (job.status !== "succeeded" && !job.watchable) {
     const pct = Math.max(4, job.progress);
     return (
-      <div className="render-stage panel-rel space-y-4 p-6">
-        <h1 className="t-title-2 ink-1">{tr(lang, "job.rendering")}</h1>
-        {/* Turmeric on #141014 is 6.9:1; on the cream well it was 2.2:1, under
-            the 3:1 floor for a non-text indicator. */}
-        <div className="h-2 overflow-hidden rounded-full" style={{ background: "rgb(255 255 255 / 0.14)" }}>
-          <div
-            className="progress-fill h-full rounded-full"
-            style={{
-              background: "var(--color-accent)",
-              transform: `scaleX(${pct / 100})`,
-              width: "100%",
-            }}
-          />
+      <div className="render-stage panel-rel overflow-hidden">
+        {/* Their own photos, slowly pushing in and cross-fading. People will
+            watch their own baby for four minutes; they will not watch a bar. */}
+        <PhotoReel photos={job.photos} />
+
+        <div className="space-y-4 p-6">
+          <h1 className="t-title-2 ink-1">{tr(lang, "job.rendering")}</h1>
+          {/* Turmeric on #141014 is 6.9:1; on the cream well it was 2.2:1,
+              under the 3:1 floor for a non-text indicator. */}
+          <div className="h-2 overflow-hidden rounded-full" style={{ background: "rgb(255 255 255 / 0.14)" }}>
+            <div
+              className="progress-fill h-full rounded-full"
+              style={{ background: "var(--color-accent)", transform: `scaleX(${pct / 100})`, width: "100%" }}
+            />
+          </div>
+          <p className="t-callout ink-2" aria-live="polite">
+            {tr(lang, `job.stage.${job.stage ?? "prepare"}`)}
+          </p>
+          <p className="t-footnote ink-3">
+            {job.etaSeconds !== null
+              ? tr(lang, "job.eta").replace("{min}", String(Math.max(1, Math.round(job.etaSeconds / 60))))
+              : tr(lang, "job.wait")}
+          </p>
         </div>
-        <p className="t-callout ink-2" aria-live="polite">
-          {tr(lang, `job.stage.${job.stage ?? "prepare"}`)}
-        </p>
-        <p className="t-footnote ink-4">{tr(lang, "job.wait")}</p>
       </div>
     );
   }
@@ -240,5 +250,59 @@ export default function JobView({ jobId, lang, priceLabel }: { jobId: string; la
         )}
       </div>
     </>
+  );
+}
+
+/**
+ * Cross-fades through the family's photos under a slow push-in.
+ *
+ * Deliberately cheap: two stacked <img> and a CSS transition, no canvas and no
+ * video. It runs on a mid-range Android for several minutes while the worker is
+ * busy, so it has to cost nothing. People will watch their own baby for four
+ * minutes; nobody watches a progress bar.
+ */
+function PhotoReel({ photos }: { photos: string[] }) {
+  const [i, setI] = useState(0);
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    setReduced(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+  }, []);
+
+  useEffect(() => {
+    if (photos.length < 2 || reduced) return;
+    const t = setInterval(() => setI((n) => (n + 1) % photos.length), 3400);
+    return () => clearInterval(t);
+  }, [photos.length, reduced]);
+
+  if (photos.length === 0) return null;
+
+  return (
+    <div className="relative aspect-[4/3] w-full overflow-hidden" aria-hidden="true">
+      {photos.map((src, n) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={src}
+          src={src}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{
+            opacity: n === i ? 1 : 0,
+            transform: n === i && !reduced ? "scale(1.06)" : "scale(1)",
+            transition: reduced
+              ? "opacity 200ms linear"
+              : "opacity 1200ms var(--ease-standard), transform 4600ms linear",
+          }}
+        />
+      ))}
+      {/* The card below is #141014; without this the photo ends on a hard edge. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgb(20 16 20 / 0.15) 0%, rgb(20 16 20 / 0.55) 72%, #141014 100%)",
+        }}
+      />
+    </div>
   );
 }
