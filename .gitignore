@@ -14,5 +14,14 @@ fixtures/photos/
 assets/music/*.m4a
 var/
 
-# transient QA scratch scripts
+# Transient scratch from review agents. They write probe scripts and
+# screenshots into the repo root because tsx cannot run top-level await from
+# /tmp; none of it belongs in git, and one such file has been committed by
+# accident before.
 qa-*.ts
+uxshot*.ts
+_*.ts
+scripts/_*.ts
+.uxshots/
+.shotwork/
+.shots/
