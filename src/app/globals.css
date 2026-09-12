@@ -450,6 +450,21 @@ html:has(.admin-dark) body {
   width: 100%;
   overflow-wrap: break-word;
   text-wrap: balance;
+  /* Where a line ends up once its entry animation has run. Every sb-* keyframe
+     below finishes at this, never at a literal 1 — see .sb-line--ghost. */
+  --sb-line-opacity: 1;
+  opacity: var(--sb-line-opacity);
+}
+/* A field the family has not filled yet, shown so the frame is not a hole.
+   It is a hint about the form, not a line in the film, and must never read as
+   one. The opacity lives in a custom property rather than inline, because the
+   entry animation is declared `both`: a fill-mode of `both` holds the keyframe's
+   own value after the animation ends and overrides the inline style outright, so
+   `style={{opacity:.38}}` was silently discarded and every empty label — "Hosted
+   by", ಮಗುವಿನ ಹೆಸರು — rendered at full strength. */
+.sb-line--ghost {
+  --sb-line-opacity: 0.38;
+  font-style: italic;
 }
 .sb-legend { min-width: 0; display: grid; gap: 4px; align-content: center; }
 
@@ -463,16 +478,16 @@ html:has(.admin-dark) body {
    an addend, so a Kannada title fades in instead of unpacking its conjuncts. */
 @keyframes sb-lineIn {
   from { opacity: 0; transform: translateY(var(--sb-shift, 34px)); }
-  to { opacity: 1; transform: none; }
+  to { opacity: var(--sb-line-opacity, 1); transform: none; }
 }
 @keyframes sb-titleIn {
   from { opacity: 0; letter-spacing: var(--sb-track-from, 0); }
-  to { opacity: 1; letter-spacing: var(--sb-track-to, 0); }
+  to { opacity: var(--sb-line-opacity, 1); letter-spacing: var(--sb-track-to, 0); }
 }
 @keyframes sb-heroIn {
   0% { opacity: 0; transform: scale(0.92); }
-  60% { opacity: 1; transform: scale(1.03); }
-  100% { opacity: 1; transform: scale(1); }
+  60% { opacity: var(--sb-line-opacity, 1); transform: scale(1.03); }
+  100% { opacity: var(--sb-line-opacity, 1); transform: scale(1); }
 }
 
 @media (min-width: 1024px) {

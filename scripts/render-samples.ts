@@ -10,9 +10,10 @@
  * Outputs land in public/samples/<templateId>.{mp4,jpg} and are served
  * statically, so the gallery costs nothing per view.
  *
- * NOTE: these render from the placeholder photos in fixtures/photos, which are
- * synthetic gradients. They prove the mechanism, not the product. Real sample
- * trailers need licensed or consented photography — see docs/known-gaps.md.
+ * NOTE: these render from the stand-in artwork in fixtures/photos, which is
+ * drawn, not photographed. It proves the mechanism, not the product. Real
+ * sample trailers need licensed or consented photography — see
+ * docs/known-gaps.md.
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -26,10 +27,60 @@ import { rupees } from "../src/lib/money";
 const OUT = path.resolve("public/samples");
 await fs.mkdir(OUT, { recursive: true });
 
+/**
+ * Nothing from the fixture machinery may survive into the shop window.
+ *
+ * It did, for a long time: the fixtures were ffmpeg gradients with `PHOTO 1` …
+ * `PHOTO 8` burnt in by `drawtext`, and because the gallery renders from those
+ * same files, the housewarming tile on the home page read "PHOTO 1" in large
+ * ghosted type behind the date card. Nobody caught it because nobody looks at a
+ * sample video the way a buyer does — and the buyer's conclusion is that nobody
+ * has shipped this.
+ *
+ * There is no OCR here, so this checks the two places lettering can come from,
+ * both of which are the actual cause rather than a proxy for it:
+ *   - the artwork, via the receipt `make-fixtures.ts` writes after running its
+ *     own no-glyph guard over the markup it is about to rasterise; and
+ *   - the text the renderer itself puts on the frame, which must not name a
+ *     fixture or read as a placeholder.
+ */
+const PLACEHOLDER = /\b(photo|image|img|slide|sample|placeholder|lorem)\s*[-_ ]?\d/i;
+
+type FixtureManifest = { textFree?: boolean; peopleFree?: boolean; scenes?: { file: string }[] };
+
+async function assertNoPlaceholderArtwork(brief: Brief, photoPaths: string[]): Promise<void> {
+  const manifestPath = path.resolve("fixtures/photos/manifest.json");
+  let manifest: FixtureManifest;
+  try {
+    manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as FixtureManifest;
+  } catch {
+    throw new Error(
+      `No ${path.relative(process.cwd(), manifestPath)}. The fixtures predate the no-text guard ` +
+        `(they were ffmpeg gradients reading "PHOTO 1"). Run: npx tsx scripts/make-fixtures.ts`
+    );
+  }
+  if (!manifest.textFree || !manifest.peopleFree) {
+    throw new Error("fixtures/photos/manifest.json does not certify the artwork text-free and people-free");
+  }
+  const certified = new Set((manifest.scenes ?? []).map((s) => s.file));
+  for (const p of photoPaths) {
+    if (!certified.has(path.basename(p))) {
+      throw new Error(`${p} was not written by the guarded generator; re-run scripts/make-fixtures.ts`);
+    }
+  }
+
+  const names = photoPaths.map((p) => path.basename(p));
+  for (const [key, value] of Object.entries(brief.fields)) {
+    if (PLACEHOLDER.test(value)) throw new Error(`Sample brief field "${key}" reads as a placeholder: ${value}`);
+    if (names.some((n) => value.includes(n))) throw new Error(`Sample brief field "${key}" names a fixture file: ${value}`);
+  }
+}
+
 let total = 0;
 for (const template of listTemplates()) {
   const file = path.resolve(`fixtures/samples/${template.id}.json`);
   const brief = Brief.parse(JSON.parse(await fs.readFile(file, "utf8")));
+  await assertNoPlaceholderArtwork(brief, brief.photos);
 
   process.stdout.write(`  ${template.id.padEnd(28)} rendering…`);
   const ledger = new CostLedger(`sample-${template.id}`);

@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { contrast, accentText, PAPER } from "../src/lib/theme.ts";
 import { listTemplates } from "../src/lib/templates/index.ts";
+import { GROUND_STOP_ALPHA } from "../src/lib/render/cardStyles.ts";
 
 /**
  * The palette, measured rather than asserted.
@@ -74,4 +75,73 @@ test("the computed fallback darkens rather than lightens", () => {
 test("hairlines are non-text and stay non-text", () => {
   // A 1.3:1 hairline is a separator, not a border you may put a label in.
   assert.ok(contrast("#E8DCC9", PAPER) < 3, "the hairline is decoration; nothing text-bearing uses it");
+});
+
+/**
+ * The grounds the FILM is painted on, as opposed to the chrome above.
+ *
+ * These were missed by the repaint: all four templates still carried a
+ * near-black `palette.bg` (#140507, #0B1220, #0F1410, #1A1210) long after the
+ * page became paper, so the gallery was four black slabs and — the part that
+ * actually matters — the artefact forwarded on WhatsApp was unchanged.
+ *
+ * A title card is never painted on `palette.bg` alone: `cardGround` lifts the
+ * centre with the accent and rings it with the muted hue, so the text sits on
+ * whichever of the three composited stops it happens to land over. All three
+ * are measured. Card text is large by construction — the smallest style on a
+ * card is `caption` at 0.88 x bodySize, which is 41px in a 1080x1920 frame —
+ * so the accent floor is the 3:1 large-text floor; the ink carries body-weight
+ * meaning and is held to 4.5:1.
+ */
+const over = (fg: string, alpha: number, bg: string): string => {
+  const px = (h: string) => {
+    const n = parseInt(h.replace("#", ""), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const [r, g, b] = px(fg);
+  const [R, G, B] = px(bg);
+  const mix = (f: number, k: number) =>
+    Math.round(f * alpha + k * (1 - alpha)).toString(16).padStart(2, "0");
+  return `#${mix(r!, R!)}${mix(g!, G!)}${mix(b!, B!)}`;
+};
+
+test("no template ground is near-black any more", () => {
+  /*
+   * Measured in BT.601 luma, deliberately — the same Y that ffmpeg reports for
+   * a frame, so this number and the poster's mean luma are the same units and
+   * the review's "mean luma above 60/255" can be checked against it.
+   *
+   * WCAG relative luminance is the wrong instrument here: it weights green so
+   * heavily that #4A2418, a mid terracotta, scores 0.028 — below near-black
+   * navy #0B1220's own neighbourhood — and would have argued for a brown so
+   * pale the cream ink stops working.
+   *
+   * The four grounds the repaint left behind measure 10, 18, 18 and 20. The
+   * four that replaced them measure 46-59. 40 sits in the gap.
+   */
+  const luma601 = (hexColour: string): number => {
+    const n = parseInt(hexColour.replace("#", ""), 16);
+    return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+  };
+  for (const t of listTemplates()) {
+    const y = luma601(t.palette.bg);
+    assert.ok(y >= 40, `${t.id}: palette.bg ${t.palette.bg} is luma ${y.toFixed(0)}/255 — still a black slab`);
+  }
+});
+
+test("card ink and accent clear their floors on every stop of the lit ground", () => {
+  const alpha = GROUND_STOP_ALPHA / 255;
+  for (const t of listTemplates()) {
+    const stops = {
+      bg: t.palette.bg,
+      ring: over(t.palette.muted, alpha, t.palette.bg),
+      glow: over(t.palette.accent, alpha, t.palette.bg),
+    };
+    for (const [name, ground] of Object.entries(stops)) {
+      const ink = contrast(t.palette.ink, ground);
+      assert.ok(ink >= 4.5, `${t.id}: ink on the ${name} stop is ${ink.toFixed(2)}:1, needs 4.5:1`);
+      const accent = contrast(t.palette.accent, ground);
+      assert.ok(accent >= 3, `${t.id}: accent on the ${name} stop is ${accent.toFixed(2)}:1, needs 3:1`);
+    }
+  }
 });

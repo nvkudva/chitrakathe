@@ -9,10 +9,12 @@ import type { Script, Template, TextSlot } from "../templates/schema";
  * So the decisions live here, once, in a module that imports nothing but types:
  * no playwright, no node:fs, no zod. It is safe in a client bundle.
  *
- * Nothing in here is allowed to change the rendered video. The renderer reads
- * exactly these values in exactly these places; `tests/cards.test.ts` pins the
- * output so a well-meaning tweak to the preview cannot move a pixel of the
- * master.
+ * Nothing in here may change the rendered video *as a side effect of tuning the
+ * preview*. The renderer reads exactly these values in exactly these places;
+ * `tests/cards.test.ts` pins the output so a well-meaning tweak to the preview
+ * cannot move a pixel of the master. A deliberate change to the look — the
+ * re-ground in `cardGround` below — moves both at once, which is the point: the
+ * preview would otherwise be lying about the film.
  */
 
 /** Every line animates for this long; used to size the capture window. */
@@ -113,7 +115,27 @@ export function cardAnimationName(style: TextSlot["style"]): "heroIn" | "titleIn
   return style === "hero" ? "heroIn" : style === "title" ? "titleIn" : "lineIn";
 }
 
-/** The opaque ground a card sits on when there is no photo under it. */
+/**
+ * The opaque ground a card sits on when there is no photo under it.
+ *
+ * A lit field, not a slab. The grounds used to be near-black (`#140507`,
+ * `#0B1220`…) and a two-stop vignette over near-black is still near-black: the
+ * gallery posters measured a mean luma of 12–30/255 and a namakarana title card
+ * read as a condolence notice. The grounds are now the templates' own ceremonial
+ * colours, and the centre is lifted twice — the accent (brass, candlelight) at
+ * the focal point, the muted hue as the ring around it — so the card reads as
+ * light falling on cloth rather than a flat rectangle.
+ *
+ * `0x2a` is 16.5%. It is the largest lift that keeps every ink above 7:1 and
+ * every accent above 3:1 on all three composited stops; `tests/contrast.test.ts`
+ * measures exactly this, so the alpha cannot be raised without the test saying so.
+ */
+export const GROUND_STOP_ALPHA = 0x2a;
+
 export function cardGround(t: Template): string {
-  return `radial-gradient(120% 70% at 50% 45%, ${t.palette.muted}22 0%, ${t.palette.bg} 70%)`;
+  const a = GROUND_STOP_ALPHA.toString(16);
+  return (
+    `radial-gradient(122% 76% at 50% 42%, ` +
+    `${t.palette.accent}${a} 0%, ${t.palette.muted}${a} 46%, ${t.palette.bg} 84%)`
+  );
 }
